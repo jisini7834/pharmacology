@@ -1,0 +1,1641 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PharmNote 약물학 - 약학대학 전 단원 EBM 공부 및 검색 엔진</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            medblue: {
+              50: '#eff6ff',
+              100: '#dbeafe',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8',
+              800: '#1e40af',
+            },
+            pharma: {
+              50: '#f5f3ff',
+              100: '#ede9fe',
+              500: '#8b5cf6',
+              600: '#7c3aed',
+              700: '#6d28d9',
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'Noto Sans KR', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+KR:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    body {
+      font-family: 'Inter', 'Noto Sans KR', sans-serif;
+      background-color: #f8fafc;
+      color: #1e293b;
+    }
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+    .hide-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .hide-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    .pill-active {
+      background-color: #2563eb;
+      color: #ffffff;
+      border-color: #2563eb;
+    }
+    .card-hover {
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .card-hover:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col bg-slate-50 text-slate-800 antialiased">
+
+  <!-- ================= TOP FIXED HEADER ================= -->
+  <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-xs">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16 gap-4">
+        
+        <!-- Logo & Title -->
+        <div class="flex items-center gap-3 cursor-pointer shrink-0" onclick="switchView('library'); resetFilters();">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-medblue-600 to-pharma-600 flex items-center justify-center text-white shadow-sm font-bold text-lg">
+            <i class="fa-solid fa-capsules"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="font-extrabold text-lg text-slate-900 tracking-tight">Pharm<span class="text-medblue-600">Note</span></span>
+              <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-pharma-50 text-pharma-700 border border-pharma-200">약물학 (Pharmacology)</span>
+            </div>
+            <p class="text-[11px] text-slate-500 font-medium hidden sm:block">약학대학 1·2학기 전 단원 강의안 및 핵심 정리본 기반</p>
+          </div>
+        </div>
+
+        <!-- Central Search Bar with Live Autocomplete -->
+        <div class="relative flex-1 max-w-xl mx-2">
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+              <i class="fa-solid fa-magnifying-glass text-sm"></i>
+            </div>
+            <input 
+              type="text" 
+              id="globalSearchInput" 
+              placeholder="약물 계열, 성분명 (리시노프릴, 아토르바스타틴), 질환, 기전 검색..."
+              class="w-full pl-10 pr-10 py-2 bg-slate-100/80 hover:bg-slate-100 focus:bg-white text-sm text-slate-800 placeholder-slate-400 rounded-xl border border-slate-200 focus:border-medblue-500 focus:ring-2 focus:ring-medblue-100 focus:outline-none transition-all shadow-inner"
+              oninput="handleLiveSearch(this.value)"
+              onkeydown="handleSearchKey(event)"
+            >
+            <button 
+              id="clearSearchBtn" 
+              class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 hidden"
+              onclick="clearSearch()"
+            >
+              <i class="fa-solid fa-circle-xmark text-sm"></i>
+            </button>
+          </div>
+
+          <!-- Live Search Dropdown -->
+          <div id="searchDropdown" class="absolute left-0 right-0 mt-1 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 max-h-96 overflow-y-auto hidden">
+            <!-- Dynamic dropdown results rendered here -->
+          </div>
+        </div>
+
+        <!-- Top Right Navigation -->
+        <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          <button 
+            id="nav-library" 
+            onclick="switchView('library')" 
+            class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-100 transition flex items-center gap-1.5 border border-transparent hover:border-slate-200 bg-medblue-50 text-medblue-700 border-medblue-200"
+          >
+            <i class="fa-solid fa-book-medical text-medblue-600"></i>
+            <span class="hidden md:inline">약물 도서관</span>
+          </button>
+          <button 
+            id="nav-compare" 
+            onclick="switchView('compare')" 
+            class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-100 transition flex items-center gap-1.5 border border-transparent hover:border-slate-200"
+          >
+            <i class="fa-solid fa-scale-balanced text-amber-600"></i>
+            <span class="hidden md:inline">계열 1:1 비교</span>
+          </button>
+          <button 
+            id="nav-quiz" 
+            onclick="switchView('quiz')" 
+            class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-100 transition flex items-center gap-1.5 border border-transparent hover:border-slate-200"
+          >
+            <i class="fa-solid fa-graduation-cap text-purple-600"></i>
+            <span class="hidden md:inline">실전 퀴즈</span>
+          </button>
+          <button 
+            id="nav-bookmarks" 
+            onclick="switchView('bookmarks')" 
+            class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-100 transition flex items-center gap-1.5 border border-transparent hover:border-slate-200 relative"
+          >
+            <i class="fa-solid fa-star text-amber-500"></i>
+            <span class="hidden md:inline">즐겨찾기</span>
+            <span id="bookmarkBadge" class="absolute -top-1 -right-1 px-1.5 py-0.2 bg-amber-500 text-white rounded-full text-[10px] font-bold hidden">0</span>
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </header>
+
+  <!-- ================= MAIN CONTAINER ================= -->
+  <div class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 flex gap-6">
+
+    <!-- ================= LEFT SIDEBAR ================= -->
+    <aside id="sidebarPanel" class="w-72 shrink-0 hidden lg:block space-y-5">
+      
+      <!-- Philosophy Card -->
+      <div class="bg-gradient-to-br from-slate-900 to-slate-800 text-white p-4 rounded-2xl shadow-sm border border-slate-700/50">
+        <div class="flex items-center gap-2 mb-2">
+          <span class="w-6 h-6 rounded-md bg-medblue-500/20 text-medblue-400 flex items-center justify-center text-xs">
+            <i class="fa-solid fa-dna"></i>
+          </span>
+          <span class="text-xs font-bold tracking-wide uppercase text-slate-300">약물학 (Pharmacology) EBM</span>
+        </div>
+        <p class="text-xs text-slate-300 leading-relaxed">
+          약학대학 정규 커리큘럼(1·2학기) 전 단원 완벽 정리. 모든 전문 용어는 <strong>처음 등장 시 한글 (영문) 병기</strong> 원칙을 적용하였습니다.
+        </p>
+        <div class="mt-3 pt-3 border-t border-slate-700/60 flex items-center justify-between text-[11px] text-slate-400">
+          <span>총 수록 약물군</span>
+          <span class="font-bold text-medblue-400 text-xs">21개 핵심 대분류</span>
+        </div>
+      </div>
+
+      <!-- Organ System Categories Accordion Nav -->
+      <div class="bg-white p-3 rounded-2xl border border-slate-200/80 shadow-xs">
+        <div class="flex items-center justify-between px-2 py-1 mb-1">
+          <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+            <i class="fa-solid fa-layer-group text-medblue-600"></i>
+            장기 계통별 약물 분류
+          </h3>
+          <button onclick="setCategoryFilter('all')" class="text-[11px] text-slate-400 hover:text-slate-600">전체보기</button>
+        </div>
+        <nav id="categoryNavList" class="space-y-0.5 text-xs">
+          <!-- Dynamically populated categories -->
+        </nav>
+      </div>
+
+      <!-- Quick Topic Tags -->
+      <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
+        <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
+          <i class="fa-solid fa-tags text-indigo-500"></i>
+          임상 주요 키워드 퀵 검색
+        </h3>
+        <div class="flex flex-wrap gap-1.5">
+          <button onclick="quickFilterTag('고혈압')" class="px-2 py-1 rounded-md text-[11px] bg-slate-100 hover:bg-medblue-50 hover:text-medblue-700 text-slate-600 transition">#고혈압 (HTN)</button>
+          <button onclick="quickFilterTag('당뇨')" class="px-2 py-1 rounded-md text-[11px] bg-slate-100 hover:bg-medblue-50 hover:text-medblue-700 text-slate-600 transition">#당뇨병 (DM)</button>
+          <button onclick="quickFilterTag('심부전')" class="px-2 py-1 rounded-md text-[11px] bg-slate-100 hover:bg-medblue-50 hover:text-medblue-700 text-slate-600 transition">#심부전 (HFrEF)</button>
+          <button onclick="quickFilterTag('천식')" class="px-2 py-1 rounded-md text-[11px] bg-slate-100 hover:bg-medblue-50 hover:text-medblue-700 text-slate-600 transition">#천식 (Asthma)</button>
+          <button onclick="quickFilterTag('항응고')" class="px-2 py-1 rounded-md text-[11px] bg-slate-100 hover:bg-medblue-50 hover:text-medblue-700 text-slate-600 transition">#항응고 (DOAC)</button>
+          <button onclick="quickFilterTag('스타틴')" class="px-2 py-1 rounded-md text-[11px] bg-slate-100 hover:bg-medblue-50 hover:text-medblue-700 text-slate-600 transition">#스타틴 (Statin)</button>
+          <button onclick="quickFilterTag('항생제')" class="px-2 py-1 rounded-md text-[11px] bg-slate-100 hover:bg-medblue-50 hover:text-medblue-700 text-slate-600 transition">#항생제 (Antibiotics)</button>
+          <button onclick="quickFilterTag('결핵')" class="px-2 py-1 rounded-md text-[11px] bg-slate-100 hover:bg-medblue-50 hover:text-medblue-700 text-slate-600 transition">#결핵 (TB/HRZE)</button>
+          <button onclick="quickFilterTag('우울증')" class="px-2 py-1 rounded-md text-[11px] bg-slate-100 hover:bg-medblue-50 hover:text-medblue-700 text-slate-600 transition">#우울증 (SSRI)</button>
+          <button onclick="quickFilterTag('파킨슨')" class="px-2 py-1 rounded-md text-[11px] bg-slate-100 hover:bg-medblue-50 hover:text-medblue-700 text-slate-600 transition">#파킨슨 (L-dopa)</button>
+          <button onclick="quickFilterTag('항암제')" class="px-2 py-1 rounded-md text-[11px] bg-slate-100 hover:bg-medblue-50 hover:text-medblue-700 text-slate-600 transition">#항암제 (Chemo)</button>
+          <button onclick="quickFilterTag('골다공증')" class="px-2 py-1 rounded-md text-[11px] bg-slate-100 hover:bg-medblue-50 hover:text-medblue-700 text-slate-600 transition">#골다공증 (BP)</button>
+        </div>
+      </div>
+
+    </aside>
+
+    <!-- ================= RIGHT MAIN WORKSPACE ================= -->
+    <main class="flex-1 min-w-0">
+
+      <!-- ================= 1. LIBRARY VIEW ================= -->
+      <section id="view-library" class="space-y-6">
+        
+        <!-- Hero Banner: Pharmacology Overview -->
+        <div class="bg-gradient-to-r from-slate-900 via-medblue-900 to-pharma-900 rounded-3xl p-6 text-white shadow-md relative overflow-hidden">
+          <div class="absolute -right-8 -bottom-8 opacity-10 text-9xl text-white pointer-events-none">
+            <i class="fa-solid fa-prescription-bottle-medical"></i>
+          </div>
+          <div class="relative z-10 max-w-2xl">
+            <div class="flex items-center gap-2 mb-2">
+              <span class="px-2.5 py-0.5 rounded-full bg-medblue-500/30 text-medblue-200 text-[11px] font-semibold tracking-wide uppercase backdrop-blur-xs">
+                약학대학 전공 필수
+              </span>
+              <span class="px-2 py-0.5 rounded-full bg-pharma-500/30 text-pharma-200 text-[11px] font-medium">
+                약물학 (Pharmacology) 정리 완
+              </span>
+            </div>
+            <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight mb-2">
+              약물학 EBM 실전 공부 및 검색 엔진
+            </h1>
+            <p class="text-xs sm:text-sm text-slate-300 leading-relaxed mb-4">
+              작용기전 (MoA), 적응증, 약동학 (PK/PD), 부작용 (ADR), 약물상호작용 (DDI) 및 실전 복약지도 팁까지 완벽 정리. 처음 나오는 전문용어는 한글 (영어) 병기 원칙을 준수합니다.
+            </p>
+            <div class="flex flex-wrap gap-2 text-xs">
+              <button onclick="switchView('compare')" class="px-3.5 py-2 bg-medblue-600 hover:bg-medblue-700 text-white font-bold rounded-xl shadow-xs transition flex items-center gap-1.5">
+                <i class="fa-solid fa-code-compare"></i>
+                약물 계열 1:1 비교기
+              </button>
+              <button onclick="switchView('quiz')" class="px-3.5 py-2 bg-pharma-600 hover:bg-pharma-700 text-white font-semibold rounded-xl transition flex items-center gap-1.5">
+                <i class="fa-solid fa-brain"></i>
+                실전 임상 케이스 퀴즈 풀기
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- System Categories Pill Bar with Left/Right Buttons & Wrap Toggle -->
+        <div class="bg-white p-3 rounded-2xl border border-slate-200/80 shadow-xs relative">
+          <div class="flex items-center justify-between mb-2 px-1">
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                <i class="fa-solid fa-sitemap text-medblue-600"></i>
+                계통별 원클릭 필터
+              </span>
+              <span class="text-[10px] text-slate-400 font-normal hidden sm:inline">(마우스 휠이나 좌우 화살표로 스크롤 가능)</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span id="activeFilterBadge" class="text-[11px] text-slate-500 font-medium">전체 약물군 21개</span>
+              <button 
+                onclick="togglePillBarWrap()" 
+                id="pillBarWrapToggleBtn"
+                class="px-2 py-0.5 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-600 text-[10px] font-semibold transition flex items-center gap-1"
+                title="한 줄 보기 / 전체 펼쳐보기 전환"
+              >
+                <i class="fa-solid fa-table-cells-large text-[9px]"></i>
+                <span id="pillBarWrapToggleText">전체 펼치기</span>
+              </button>
+            </div>
+          </div>
+          
+          <!-- Carousel Container with Navigation Chevrons -->
+          <div class="relative group">
+            <!-- Left Scroll Button -->
+            <button 
+              id="pillScrollLeftBtn"
+              onclick="scrollPillBar(-220)" 
+              class="absolute -left-1.5 top-1/2 -translate-y-1/2 z-10 w-7 h-7 rounded-full bg-white/95 border border-slate-200 shadow-md text-slate-600 hover:text-medblue-600 hover:bg-medblue-50 flex items-center justify-center text-xs transition duration-150 opacity-90 hover:opacity-100"
+              title="왼쪽으로 스크롤"
+            >
+              <i class="fa-solid fa-chevron-left text-[11px]"></i>
+            </button>
+
+            <!-- Scrollable Pill Bar -->
+            <div 
+              id="categoryPillBar" 
+              class="flex gap-2 overflow-x-auto px-6 py-1 scroll-smooth select-none cursor-grab"
+              style="scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent;"
+            >
+              <!-- Dynamic pill buttons -->
+            </div>
+
+            <!-- Right Scroll Button -->
+            <button 
+              id="pillScrollRightBtn"
+              onclick="scrollPillBar(220)" 
+              class="absolute -right-1.5 top-1/2 -translate-y-1/2 z-10 w-7 h-7 rounded-full bg-white/95 border border-slate-200 shadow-md text-slate-600 hover:text-medblue-600 hover:bg-medblue-50 flex items-center justify-center text-xs transition duration-150 opacity-90 hover:opacity-100"
+              title="오른쪽으로 스크롤"
+            >
+              <i class="fa-solid fa-chevron-right text-[11px]"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Grid Header -->
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <h2 class="text-base font-bold text-slate-900" id="libraryResultsHeading">약물 계열 목록</h2>
+            <span id="resultCountBadge" class="px-2 py-0.5 bg-slate-200/80 text-slate-700 rounded-full text-xs font-semibold">21</span>
+          </div>
+        </div>
+
+        <!-- Drug Classes Grid -->
+        <div id="classesGrid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- Rendered dynamically -->
+        </div>
+
+      </section>
+
+      <!-- ================= 2. 1:1 COMPARISON VIEW ================= -->
+      <section id="view-compare" class="space-y-6 hidden">
+        <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="w-12 h-12 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center text-xl font-bold">
+              <i class="fa-solid fa-scale-balanced"></i>
+            </div>
+            <div>
+              <h2 class="text-xl font-bold text-slate-900">약물 계열 1:1 감별 비교 분석실</h2>
+              <p class="text-xs text-slate-500">헷갈리기 쉬운 두 약물 계열을 나란히 놓고 작용기전 (MoA), 대표 약물, 적응증, 부작용, 임상 팁을 직접 비교합니다.</p>
+            </div>
+          </div>
+
+          <!-- Quick Presets -->
+          <div class="flex items-center gap-2 overflow-x-auto pb-2 mb-4 text-xs">
+            <span class="text-slate-400 shrink-0 font-medium">추천 비교 프리셋:</span>
+            <button onclick="loadComparePreset('antihypertensives', 'heart_failure_drugs')" class="px-3 py-1 rounded-full bg-slate-100 hover:bg-amber-50 hover:text-amber-800 text-slate-700 font-medium transition shrink-0">
+              고혈압약 (ACEI/ARB) vs 심부전약 (ARNI)
+            </button>
+            <button onclick="loadComparePreset('diuretic_agents', 'antihypertensives')" class="px-3 py-1 rounded-full bg-slate-100 hover:bg-amber-50 hover:text-amber-800 text-slate-700 font-medium transition shrink-0">
+              이뇨약 vs 고혈압약
+            </button>
+            <button onclick="loadComparePreset('antithrombotics', 'lipid_lowering_drugs')" class="px-3 py-1 rounded-full bg-slate-100 hover:bg-amber-50 hover:text-amber-800 text-slate-700 font-medium transition shrink-0">
+              항응고제 (DOAC) vs 지질저하제 (스타틴)
+            </button>
+            <button onclick="loadComparePreset('cholinergic_agonists', 'anticholinergic_drugs')" class="px-3 py-1 rounded-full bg-slate-100 hover:bg-amber-50 hover:text-amber-800 text-slate-700 font-medium transition shrink-0">
+              콜린 효능약 vs 항콜린약
+            </button>
+            <button onclick="loadComparePreset('antimicrobial_drugs', 'antimycobacterial_drugs')" class="px-3 py-1 rounded-full bg-slate-100 hover:bg-amber-50 hover:text-amber-800 text-slate-700 font-medium transition shrink-0">
+              일반 항생제 vs 결핵 치료약 (HRZE)
+            </button>
+          </div>
+
+          <!-- Select Box row -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+            <div class="p-4 bg-slate-50 rounded-2xl border border-slate-200">
+              <label class="block text-xs font-bold text-slate-700 mb-2 flex items-center gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-medblue-600"></span>
+                약물군 A 선택
+              </label>
+              <select id="compareSelectA" onchange="updateComparison()" class="w-full bg-white border border-slate-200 rounded-xl p-2.5 text-xs font-semibold text-slate-800 focus:outline-none focus:border-medblue-500">
+                <!-- Dynamically filled -->
+              </select>
+            </div>
+            <div class="p-4 bg-slate-50 rounded-2xl border border-slate-200">
+              <label class="block text-xs font-bold text-slate-700 mb-2 flex items-center gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-pharma-600"></span>
+                약물군 B 선택
+              </label>
+              <select id="compareSelectB" onchange="updateComparison()" class="w-full bg-white border border-slate-200 rounded-xl p-2.5 text-xs font-semibold text-slate-800 focus:outline-none focus:border-pharma-500">
+                <!-- Dynamically filled -->
+              </select>
+            </div>
+          </div>
+
+          <!-- Comparison Table -->
+          <div id="comparisonMatrixContainer" class="overflow-x-auto">
+            <!-- Dynamic comparison content -->
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= 3. CLINICAL CASE QUIZ VIEW ================= -->
+      <section id="view-quiz" class="space-y-6 hidden">
+        <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs">
+          <div class="flex items-center justify-between mb-6">
+            <div class="flex items-center gap-3">
+              <div class="w-12 h-12 rounded-2xl bg-purple-100 text-purple-700 flex items-center justify-center text-xl font-bold">
+                <i class="fa-solid fa-graduation-cap"></i>
+              </div>
+              <div>
+                <h2 class="text-xl font-bold text-slate-900">약학대학 약물학 실전 시험 & 케이스 퀴즈</h2>
+                <p class="text-xs text-slate-500">정리본의 핵심 기전 및 부작용, 상호작용을 검증하는 10대 실전 증례 퀴즈를 풀어보세요.</p>
+              </div>
+            </div>
+            <div class="text-right">
+              <span class="text-xs text-slate-400">진행률</span>
+              <p class="text-sm font-extrabold text-purple-700" id="quizProgressText">문제 1 / 10</p>
+            </div>
+          </div>
+
+          <!-- Quiz Card -->
+          <div id="quizCardContainer" class="p-6 bg-slate-50 rounded-2xl border border-slate-200 space-y-4">
+            <!-- Dynamic Quiz rendered here -->
+          </div>
+
+          <div class="flex items-center justify-between pt-4">
+            <button onclick="prevQuiz()" id="prevQuizBtn" class="px-4 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-100 transition disabled:opacity-40" disabled>
+              <i class="fa-solid fa-chevron-left mr-1"></i> 이전 문제
+            </button>
+            <div class="flex gap-2">
+              <button onclick="resetQuiz()" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-500 hover:text-slate-800 transition">
+                처음부터 다시 풀기
+              </button>
+              <button onclick="nextQuiz()" id="nextQuizBtn" class="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold shadow-xs transition">
+                다음 문제 <i class="fa-solid fa-chevron-right ml-1"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= 4. BOOKMARKS & NOTES VIEW ================= -->
+      <section id="view-bookmarks" class="space-y-6 hidden">
+        <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs">
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-3">
+              <div class="w-12 h-12 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center text-xl font-bold">
+                <i class="fa-solid fa-star"></i>
+              </div>
+              <div>
+                <h2 class="text-xl font-bold text-slate-900">나만의 북마크 및 약물학 노트</h2>
+                <p class="text-xs text-slate-500">별표를 누른 약물군과 작성한 요약 메모가 브라우저에 안전하게 보관됩니다.</p>
+              </div>
+            </div>
+            <button onclick="clearAllBookmarks()" class="text-xs text-rose-500 hover:text-rose-700 font-medium">전체 삭제</button>
+          </div>
+
+          <div id="bookmarksListContainer" class="space-y-3">
+            <!-- Dynamic bookmarks -->
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+  </div>
+
+  <!-- ================= DRUG CLASS DETAIL MODAL (PharmNote Style) ================= -->
+  <div id="classDetailModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto hidden">
+    <div class="bg-white w-full max-w-4xl rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92vh] animate-in fade-in zoom-in-95 duration-200">
+      
+      <!-- Modal Header -->
+      <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/80 shrink-0">
+        <div class="flex items-center gap-3 min-w-0">
+          <span id="modalNumBadge" class="px-2.5 py-1 rounded-lg bg-medblue-50 text-medblue-700 font-extrabold text-xs border border-medblue-200 shrink-0">
+            Ch.1
+          </span>
+          <div class="truncate">
+            <h2 id="modalClassName" class="text-lg sm:text-xl font-black text-slate-900 truncate">콜린 수용체 효능약</h2>
+            <p id="modalCategory" class="text-xs text-slate-500 truncate">자율신경계 (ANS)</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+          <button id="modalBookmarkBtn" onclick="toggleModalBookmark()" class="w-9 h-9 rounded-xl border border-slate-200 hover:border-amber-400 hover:text-amber-500 text-slate-400 flex items-center justify-center transition">
+            <i class="fa-solid fa-star text-sm"></i>
+          </button>
+          <button onclick="closeDetailModal()" class="w-9 h-9 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-500 hover:text-slate-800 flex items-center justify-center transition">
+            <i class="fa-solid fa-xmark text-base"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Modal Body (Scrollable) -->
+      <div class="p-6 overflow-y-auto space-y-6 text-sm flex-1">
+        
+        <!-- Summary Box -->
+        <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200">
+          <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">약물군 개요</span>
+          <p id="modalShortDesc" class="text-xs text-slate-700 leading-relaxed font-medium">개요 설명</p>
+        </div>
+
+        <!-- 1. 대표 약물 목록 카드 그리드 -->
+        <div class="space-y-2">
+          <h4 class="text-xs font-extrabold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+            <i class="fa-solid fa-pills text-medblue-600"></i>
+            💊 대표 성분 (Generic) · 상용 상품명 (Brand) 및 임상 특징
+          </h4>
+          <div id="modalDrugsGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <!-- Dynamic drug cards -->
+          </div>
+        </div>
+
+        <!-- 2. 약리 작용 기전 (MoA) -->
+        <div class="space-y-2">
+          <h4 class="text-xs font-extrabold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+            <i class="fa-solid fa-microscope text-purple-600"></i>
+            🔬 약리 작용 기전 (mechanism of action, MoA)
+          </h4>
+          <div id="modalMoaText" class="text-xs text-slate-700 leading-relaxed bg-slate-50 p-4 rounded-2xl border border-slate-200 font-medium">
+            <!-- Dynamic MoA text -->
+          </div>
+        </div>
+
+        <!-- 3. 파무/임상 약사의 핵심 복약지도 팁 (💡 Signature Amber Box) -->
+        <div class="p-4 rounded-2xl bg-amber-50 border border-amber-200/90 shadow-xs space-y-2">
+          <div class="flex items-center gap-2 text-amber-900 font-extrabold text-xs">
+            <span class="w-6 h-6 rounded-full bg-amber-200 flex items-center justify-center text-amber-800 text-xs">
+              <i class="fa-solid fa-lightbulb"></i>
+            </span>
+            💡 실전 복약상담 팁 & 임상 검수 포인트 (Clinical Pearls)
+          </div>
+          <p id="modalClinicalPearls" class="text-xs text-amber-950 leading-relaxed font-medium">
+            <!-- Dynamic pearls -->
+          </p>
+        </div>
+
+        <!-- 4. 주요 적응증 & 부작용 -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div class="space-y-2">
+            <h4 class="text-xs font-extrabold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+              <i class="fa-solid fa-stethoscope text-emerald-600"></i>
+              🏥 주요 적응증 (Indications)
+            </h4>
+            <div id="modalIndicationsList" class="flex flex-wrap gap-1.5">
+              <!-- Dynamic tags -->
+            </div>
+          </div>
+          <div class="space-y-2">
+            <h4 class="text-xs font-extrabold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+              <i class="fa-solid fa-triangle-exclamation text-rose-500"></i>
+              ⚠️ 주요 부작용 (Adverse Drug Reactions, ADRs)
+            </h4>
+            <div id="modalAdrsList" class="space-y-1 text-xs text-rose-950 bg-rose-50/70 p-3 rounded-2xl border border-rose-200/60 font-medium">
+              <!-- Dynamic ADRs -->
+            </div>
+          </div>
+        </div>
+
+        <!-- 5. 약물 상호작용 및 금기 (DDIs & Cautions) -->
+        <div class="space-y-2">
+          <h4 class="text-xs font-extrabold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+            <i class="fa-solid fa-shield-halved text-blue-600"></i>
+            🚫 약물 상호작용 (DDIs) 및 주요 금기 (Contraindications)
+          </h4>
+          <div id="modalDdisArea" class="space-y-1.5 text-xs text-slate-700 bg-blue-50/50 p-4 rounded-2xl border border-blue-100 font-medium leading-relaxed">
+            <!-- Dynamic DDIs -->
+          </div>
+        </div>
+
+        <!-- 6. 약사 국가고시 / 시험 핵심 출제 포인트 -->
+        <div class="p-4 rounded-2xl bg-indigo-50/60 border border-indigo-200/70 space-y-1.5">
+          <span class="text-xs font-extrabold text-indigo-900 flex items-center gap-1.5">
+            <i class="fa-solid fa-award text-indigo-600"></i>
+            약사 국가시험 및 단원 평가 핵심 빈출 포인트
+          </span>
+          <p id="modalExamPoints" class="text-xs text-indigo-950 leading-relaxed font-medium">
+            <!-- Dynamic exam points -->
+          </p>
+        </div>
+
+        <!-- Personal Study Note -->
+        <div class="space-y-2 pt-2 border-t border-slate-200">
+          <label class="block text-xs font-bold text-slate-700 flex items-center gap-1.5">
+            <i class="fa-solid fa-pen-to-square text-medblue-600"></i>
+            나만의 약물학 암기 메모 (자동 저장)
+          </label>
+          <textarea 
+            id="classNoteInput" 
+            rows="2" 
+            placeholder="이 약물 계열에 대해 기억해야 할 나만의 암기팁이나 정리 내용을 기록하세요..."
+            class="w-full text-xs p-3 rounded-xl border border-slate-200 focus:border-medblue-500 focus:ring-1 focus:ring-medblue-200 focus:outline-none"
+            oninput="saveCurrentClassNote(this.value)"
+          ></textarea>
+        </div>
+
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="px-6 py-3 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-xs text-slate-500 shrink-0">
+        <span>약물학 (정리 완) EBM 지식엔진</span>
+        <button onclick="closeDetailModal()" class="px-4 py-1.5 bg-slate-800 hover:bg-slate-900 text-white font-semibold rounded-lg transition">
+          닫기
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ================= INLINE DATA SCRIPT ================= -->
+  <script>
+    const PHARMA_DATABASE = [{"id": "cholinergic_agonists", "num": 1, "category": "자율신경계 (ANS)", "name": "콜린 수용체 효능약 (cholinergic receptor agonists) 및 콜린에스테라아제 억제제 (cholinesterase inhibitors)", "sub_category": "부교감신경 작용제", "short_desc": "무스카린 및 니코틴 수용체를 자극하거나 아세틸콜린(ACh) 분해를 억제하여 부교감신경 활성을 항진시키는 약물군", "drugs": [{"generic": "베타네콜 (bethanechol)", "brand": "마이토닌", "role": "M3 선택성 효능약, 수술 후 배뇨곤란·비폐쇄성 요정체"}, {"generic": "필로카르핀 (pilocarpine)", "brand": "오큐카르핀", "role": "3차 아민 알칼로이드, 동공축소(축동), 개방각 녹내장 안압 강하, 쇼그렌 증후군 구강건조 개선"}, {"generic": "네오스티그민 (neostigmine)", "brand": "바고스피그민", "role": "가역적 카르바메이트 AChE 억제제(4차 암모늄), 중증 근무력증 치료 및 비탈분극성 근이완제 역전"}, {"generic": "피리도스티그민 (pyridostigmine)", "brand": "메스티논", "role": "작용시간이 긴 AChE 억제제, 중증 근무력증 1차 유지요법"}, {"generic": "도네페질 (donepezil)", "brand": "아리셉트", "role": "중추 선택적 가역적 AChE 억제제, 알츠하이머 치매 인지기능 개선, 1일 1회 취침 전"}], "moa": "직접작용약은 신경 효과기 세포의 무스카린 수용체 (muscarinic receptor) 및 자율신경절의 니코틴 수용체 (nicotinic receptor)에 직접 결합하여 흥분성 신호를 전달합니다. 간접작용약인 콜린에스테라아제 억제제는 시냅스 틈에서 아세틸콜린을 가수분해하는 효소를 가역적 또는 비가역적으로 억제하여 내인성 신경전달물질의 농도와 작용시간을 증가시킵니다.", "indications": ["수술 후 요폐 및 장관 마비", "녹내장 (glaucoma)", "중증 근무력증 (myasthenia gravis)", "알츠하이머병 (Alzheimer's disease)", "쇼그렌 증후군 (Sjögren's syndrome)"], "adrs": ["콜린성 과다 증상 (DUMBBELLS: 설사, 배뇨, 축동, 서맥, 기관지수축, 구토, 눈물, 침분비)", "복통 및 위경련", "발한 과다", "방실차단 (AV block)"], "ddis_and_cautions": ["기관지 천식 (bronchial asthma) 및 만성 폐쇄성 폐질환 (COPD) 환자에게 기관지 수축 위험으로 금기", "소화성 궤양 (peptic ulcer) 환자에게 위산 분비 촉진 위험", "기계적 장폐색 및 요로폐색 환자에게 투여 금기", "유기인계 살충제 중독 시 해독제로 아트로핀과 함께 효소 재생제인 프랄리독심 (pralidoxime, PAM)을 숙성(aging) 전에 조기 투여"], "pharmacist_tips": "💡 도네페질 복용 초기에는 오심, 설사, 수면장애(생생한 악몽)가 나타날 수 있으므로 서서히 증량하며 저녁 식후 또는 취침 전 복용을 권장합니다. 베타네콜은 식후 즉시 복용 시 오심·구토가 유발될 수 있어 공복(식전 1시간 또는 식후 2시간) 복용을 지도합니다.", "exam_points": "에드로포늄 (edrophonium)은 반감기가 수 분으로 극히 짧아 중증 근무력증의 진단(Tensilon test)에 쓰이며, 피리도스티그민은 장기 유지요법에 사용됩니다. 유기인계 중독의 가역적 치료 골든타임(숙성 전 PAM 투여)이 단골 출제됩니다."}, {"id": "anticholinergic_drugs", "num": 2, "category": "자율신경계 (ANS)", "name": "무스카린 수용체 차단약 (muscarinic receptor antagonists) 및 항콜린제 (anticholinergics)", "sub_category": "부교감신경 억제제", "short_desc": "무스카린 수용체를 경쟁적으로 차단하여 부교감신경 흥분 작용을 억제하는 진경제, 산동제, 항COPD제, 요실금 치료제", "drugs": [{"generic": "아트로핀 (atropine)", "brand": "아트로핀주", "role": "비선택적 3차 아민 천연 알칼로이드, 서맥 응급소생, 유기인계 중독 해독, 마취전투약"}, {"generic": "스코폴라민 (scopolamine)", "brand": "키미테패취", "role": "중추 통과 3차 아민, 전정기관 억제를 통한 멀미(motion sickness) 예방"}, {"generic": "이프라트로피움 (ipratropium)", "brand": "아트로벤트", "role": "4차 암모늄 SAMA, 기관지 확장, 전신흡수 적어 심혈관 부작용 최소화"}, {"generic": "티오트로피움 (tiotropium)", "brand": "스피리바", "role": "지속성 LAMA, M3/M1 수용체 해리가 느려 24시간 지속, COPD 유지요법"}, {"generic": "옥시부티닌 (oxybutynin)", "brand": "디트로판", "role": "M3 선택적 진경/항콜린제, 과민성 방광 및 절박성 요실금"}, {"generic": "솔리페나신 (solifenacin)", "brand": "베시케어", "role": "방광 M3 수용체 고선택성, 구강건조 부작용 경감된 빈뇨·요절박 치료제"}], "moa": "신경절 이후 부교감신경 효과기 세포의 무스카린 수용체(M1, M2, M3)에 결합하여 아세틸콜린의 접근을 경쟁적으로 차단합니다. 분비샘 분비 억제, 기관지 평활근 이완, 심장 박동수 증가(서맥 억제), 방광 배뇨근 이완, 소화관 연동운동 억제 및 동공산대근 작용에 의한 산동을 유발합니다.", "indications": ["만성 폐쇄성 폐질환 (COPD) 및 천식", "과민성 방광 (overactive bladder) 및 절박뇨", "동방결절성 서맥 (bradycardia)", "유기인계 살충제 및 콜린성 약물 중독 해독", "안과적 굴절검사 및 산동", "멀미 예방"], "adrs": ["입마름 / 구강건조 (dry mouth)", "시야흐림 (blurred vision) 및 조절마비", "변비 (constipation)", "소변저류 / 요폐 (urinary retention)", "안면홍조 및 무한증에 의한 체온상승 (atropine fever)", "고령자 인지기능 저하 및 섬망 (delirium)"], "ddis_and_cautions": ["폐쇄각 녹내장 (closed-angle glaucoma) 환자에게 전방각 폐쇄로 안압이 급상승하므로 절대 금기", "전립선 비대증 (benign prostatic hyperplasia, BPH) 남성에게 요폐 위험으로 투여 금기", "항히스타민제, 삼환계 항우울제 (TCA), 항정신병제와 병용 시 항콜린 부작용 상가 작용 주의"], "pharmacist_tips": "💡 스코폴라민 패취는 이동 최소 4시간 전에 귀 뒤 털이 없는 부위에 부착해야 하며, 패취를 만진 손으로 눈을 비비면 심한 산동과 시야흐림이 발생하므로 반드시 비누로 손을 씻도록 복약지도합니다. 과민성 방광약 복용 환자에게는 물을 자주 머금거나 무설탕 껌을 씹어 구강건조를 완화하도록 팁을 줍니다.", "exam_points": "아트로핀 저용량 투여 시 시냅스전 M1 자가수용체 차단으로 일시적 서맥이 먼저 나타난 후, 용량을 올리면 심근 M2 차단으로 빠른맥이 유발된다는 반전 효과가 중요합니다."}, {"id": "adrenergic_agonists", "num": 3, "category": "자율신경계 (ANS)", "name": "아드레날린 수용체 효능약 (adrenoceptor agonists) 및 교감신경 흥분제 (sympathomimetics)", "sub_category": "교감신경 작용제", "short_desc": "알파(α) 및 베타(β) 수용체를 자극하여 혈관수축, 혈압상승, 심근수축력 증가, 기관지 확장을 유도하는 응급약 및 호흡기약", "drugs": [{"generic": "에피네프린 (epinephrine)", "brand": "에피펜", "role": "비선택성 α1, α2, β1, β2 효능약, 아나필락시스 쇼크 1차 치료, 심정지 소생"}, {"generic": "노르에피네프린 (norepinephrine)", "brand": "노르핀", "role": "강력한 α1, α2, β1 효능(β2 작용 거의 없음), 패혈성 쇼크 저혈압 1차 승압제"}, {"generic": "도부타민 (dobutamine)", "brand": "도부젝트", "role": "선택적 β1 효능약, 심근수축력 증가, 급성 심부전 심인성 쇼크"}, {"generic": "살부타몰 (albuterol / salbutamol)", "brand": "벤토린", "role": "속효성 베타2 작용제 (SABA), 급성 천식 발작 호흡곤란 완화제 (reliever)"}, {"generic": "살메테롤 (salmeterol)", "brand": "세레타이드(복합)", "role": "지속성 베타2 작용제 (LABA), 12시간 지속, 천식/COPD 조절제(controller)"}, {"generic": "미라베그론 (mirabegron)", "brand": "베타미가", "role": "선택적 β3 작용제, 방광 배뇨근 이완, 항콜린 부작용 없는 과민성 방광 치료제"}], "moa": "α1 수용체(Gq 단백질 연계)는 포스포리파아제 C (phospholipase C)를 활성화하여 IP3 및 칼슘을 증가시켜 혈관 평활근을 수축합니다. β1 수용체(Gs 연계)는 아데닐릴 시클라아제 (adenylyl cyclase)를 활성화하고 cAMP를 증가시켜 심근 수축력과 심박동수를 증가시킵니다. β2 수용체(Gs 연계)는 cAMP 증가를 통해 평활근을 이완시켜 기관지 확장과 혈관 확장을 매개합니다.", "indications": ["아나필락틱 쇼크 (anaphylactic shock)", "패혈성 및 심인성 쇼크 (shock)", "기관지 천식 급성 악화 및 COPD", "비충혈 및 코막힘 (nasal congestion)", "과민성 방광"], "adrs": ["심계항진 / 두근거림 (palpitation) 및 빈맥", "혈압 상승 및 부정맥 (arrhythmia)", "미세 골격근 떨림 / 진전 (tremor, β2 매개)", "불안, 불면 및 두통", "반복 투여 시 속성내성 (tachyphylaxis)"], "ddis_and_cautions": ["모노아민 산화효소 억제제 (MAOI) 또는 삼환계 항우울제 (TCA) 복용 환자에게 카테콜아민 축적으로 치명적 고혈압 위기 유발", "티라민 (tyramine) 함유 발효식품과 MAOI 병용 시 교감신경 흥분 발작 주의", "협심증, 중증 고혈압, 갑상선 기능 항진증 환자에게 심장 부담 증가로 주의"], "pharmacist_tips": "💡 벤토린 에어로솔(SABA)은 증상 완화제이므로 평소 매일 규칙적으로 흡입하는 약이 아니며, 주 2회 이상 사용 시 천식 조절이 불량하다는 신호이므로 ICS 용량 증량이 필요함을 설명합니다. 에피펜 자가주사기는 대퇴부 외측에 수직으로 딸깍 소리가 날 때까지 찔러 넣고 3~5초간 유지해야 합니다.", "exam_points": "에피네프린 역전 현상(epinephrine reversal): 알파차단제(프라조신 등)를 미리 투여한 상태에서 에피네프린을 투여하면, 수축성 α작용은 차단되고 확장성 β2작용만 남아 오히려 혈압이 뚝 떨어지는 현상이 국가고시 대표 출제 개념입니다."}, {"id": "adrenoceptor_antagonists", "num": 4, "category": "자율신경계 (ANS)", "name": "알파 및 베타 아드레날린 수용체 길항약 (adrenoceptor antagonists)", "sub_category": "교감신경 차단제", "short_desc": "혈관 저항을 낮추어 고혈압과 전립선비대를 치료하는 알파차단제와, 심근 산소소모를 줄여 협심증·심부전을 치료하는 베타차단제", "drugs": [{"generic": "탐스로신 (tamsulosin)", "brand": "하루날디", "role": "전립선/요도 α1A 선택적 차단약, 혈관 영향 적어 기립성 저혈압 부작용 경감"}, {"generic": "독사조신 (doxazosin)", "brand": "카두라", "role": "비선택적 α1 차단제, 긴 반감기(22시간), 고혈압과 전립선비대증 동반 환자"}, {"generic": "프로프라놀롤 (propranolol)", "brand": "인데놀", "role": "1세대 비선택적 β1+β2 차단제, 친지성 높아 중추 통과, 무대공포증/진전/편두통 예방"}, {"generic": "아테놀롤 (atenolol) / 메토프로롤 (metoprolol)", "brand": "테놀민 / 베타록", "role": "2세대 심장 선택적 β1 차단제, 기관지 수축 위험 상대적 감소"}, {"generic": "카베딜롤 (carvedilol)", "brand": "딜라트렌", "role": "3세대 비선택적 β + α1 차단제, 혈관확장 및 항산화, 심부전 사망률 감소 입증"}, {"generic": "네비볼롤 (nebivolol)", "brand": "네비렛", "role": "3세대 초선택적 β1 차단 + 혈관내피 NO 유리 촉진, 혈관확장 및 대사 이상 없음"}], "moa": "α1 차단제는 세동맥과 정맥의 평활근을 이완시켜 전신 혈관 저항을 감소시키고, 방광 경부와 전립선의 긴장도를 완화하여 요류를 개선합니다. β1 차단제는 심근 수축력과 심박수를 낮추어 심장의 일량과 산소 요구량을 감소시키며, 신장 사구체세포에서 레닌 (renin) 유리를 억제합니다. 3세대 약제는 α1 차단 또는 산화질소 (nitric oxide, NO) 분비를 매개하여 추가적인 혈관확장 작용을 나타냅니다.", "indications": ["본태성 고혈압 (essential hypertension)", "양성 전립선 비대증 (benign prostatic hyperplasia, BPH)", "협심증 (angina pectoris) 및 심근경색 후 2차 예방", "만성 심부전 (HFrEF)", "심방세동 등 심실상성 빈맥", "크롬친화세포종 (pheochromocytoma, 알파차단 후 베타차단 순서)", "본태성 진전 및 공연 전 긴장 완화"], "adrs": ["알파차단제: 초회투여 저혈압 (first-dose phenomenon), 체위성 저혈압 (orthostatic hypotension), 반사성 빈맥, 홍채이완증후군 (IFIS)", "베타차단제: 서맥 (bradycardia), 방실전도 차단, 기관지 연축, 손발 차가움 (말초순환장애), 혈당강하 경고증상(식은땀 제외 두근거림 등) 은폐, 발기부전"], "ddis_and_cautions": ["천식 및 중증 COPD 환자에게 비선택적 베타차단제 투여 금기 (기관지 수축)", "베타차단제를 갑자기 중단하면 수용체 상향조절에 의한 반동성 고혈압 및 협심증 악화 위험으로 1~2주간 점진적 감량 필수", "백내장 수술 예정 환자는 탐스로신 복용 시 수술 중 홍채이완증후군(IFIS) 발생 위험을 안과의사에게 고지해야 함"], "pharmacist_tips": "💡 독사조신 등 비선택적 알파차단제는 첫 복용 시 어지러움과 실신 위험이 있으므로 반드시 취침 직전에 복용하고, 아침에 일어날 때 천천히 일어나도록 복약지도합니다. 당뇨병 환자가 베타차단제를 복용할 때는 저혈당의 전형적인 증상인 가슴 두근거림이나 손떨림이 가려질 수 있음을 안내합니다.", "exam_points": "크롬친화세포종 수술 전 처치 시 반드시 알파차단제(페녹시벤자민 등)를 먼저 투여하여 혈관을 열어준 뒤에 베타차단제를 써야 합니다. 베타차단제를 먼저 쓰면 β2 혈관확장이 사라지고 α 혈관수축만 극대화되어 치명적인 고혈압 위기가 옵니다."}, {"id": "antihypertensives", "num": 5, "category": "심혈관계 (CVS)", "name": "레닌-안지오텐신계 억제약 (RAS inhibitors) 및 칼슘통로 차단약 (calcium channel blockers, CCB)", "sub_category": "항고혈압제 1차 치료약", "short_desc": "고혈압 임상 가이드라인의 핵심 1차 선택 약물인 ACEI, ARB, 디히드로피리딘계 CCB 및 복합요법", "drugs": [{"generic": "페린도프릴 (perindopril) / 라미프릴 (ramipril)", "brand": "아서틸 / 트리테이스", "role": "ACE 억제제(ACEI), 전구약물, 심부전/당뇨병성 신병증 단백뇨 감소"}, {"generic": "로사르탄 (losartan) / 발사르탄 (valsartan)", "brand": "코자 / 디오반", "role": "안지오텐신 II 수용체 차단제(ARB), 마른기침 부작용 없음, 1차 항고혈압제"}, {"generic": "암로디핀 (amlodipine)", "brand": "노바스크", "role": "장시간형 DHP계 CCB, 혈관 선택성 높아 세동맥 확장, 말초부종 주의"}, {"generic": "딜티아젬 (diltiazem) / 베라파밀 (verapamil)", "brand": "헤르벤 / 이솝틴", "role": "비DHP계 CCB, 심장 박동수 및 수축력 억제, 협심증/부정맥 동반 고혈압"}], "moa": "ACEI는 안지오텐신 전환효소를 억제하여 강력한 혈관수축 물질인 안지오텐신 II 생성을 차단하고, 혈관확장 펩티드인 브라디키닌 (bradykinin)의 분해를 막습니다. ARB는 혈관 평활근의 AT1 수용체를 직접 차단합니다. CCB는 전압개폐성 L형 칼슘 통로 (voltage-gated L-type Ca2+ channel)를 차단하여 세포 내 칼슘 유입을 억제함으로써 혈관을 확장시키고(DHP계), 심근 수축력 및 전도로를 억제합니다(비DHP계).", "indications": ["본태성 고혈압 (1차 선택 치료약)", "당뇨병성 신증 (diabetic nephropathy) 및 단백뇨 감소", "좌심실 기능부전 및 심부전", "심근경색 후 심장 리모델링 억제", "안정형 협심증 및 이형 협심증"], "adrs": ["ACEI: 브라디키닌 축적에 의한 마른기침 (dry cough, 10~20%), 혈관부종 (angioedema), 고칼륨혈증 (hyperkalemia)", "ARB: 고칼륨혈증, 저혈압 (기침 발생률 매우 낮음)", "DHP-CCB: 말초 발목 부종 (ankle edema), 안면홍조, 두통, 반사성 빈맥", "비DHP-CCB: 서맥, 방실차단, 변비 (특히 베라파밀)"], "ddis_and_cautions": ["임산부에게 최기형성 및 태아 신부전을 유발하므로 ACEI, ARB는 임신 중 절대 금기 (Category X)", "양측성 신동맥 협착증 (bilateral renal artery stenosis) 환자에게 사구체 여과율 급감으로 급성 신부전 유발", "칼륨 보존성 이뇨제 또는 칼륨 보충제와 병용 시 중증 고칼륨혈증 위험", "베라파밀은 P-당단백질(P-gp) 및 CYP3A4를 억제하여 디곡신(digoxin) 혈중농도를 2배 증가시킴"], "pharmacist_tips": "💡 ACEI 복용 중 목이 간질거리며 지속되는 마른기침이 발생하면 약을 임의로 중단하지 말고 의사와 상의하여 ARB 제제로 변경하도록 지도합니다. 암로디핀 복용 후 저녁에 발목이 붓는 현상은 혈관 확장 압력차에 의한 것이므로 다리를 올리고 휴식하도록 안내합니다.", "exam_points": "당뇨병 환자에게 고혈압이 동반되었을 때 사구체 수출세동맥을 확장시켜 사구체 내압을 낮추고 단백뇨를 감소시키는 1차 권장 약제는 ACEI/ARB입니다."}, {"id": "heart_failure_drugs", "num": 6, "category": "심혈관계 (CVS)", "name": "심부전 치료약 (drugs for heart failure) 및 강심제 (cardiac inotropes)", "sub_category": "수축기 및 이완기 심부전", "short_desc": "박출률 감소 심부전(HFrEF)의 4대 핵심 약제(ARNI, 베타차단제, MRA, SGLT2i)와 급성 강심배당체 디곡신", "drugs": [{"generic": "사쿠비트릴/발사르탄 (sacubitril/valsartan)", "brand": "엔트레스토", "role": "네프릴리신 억제제 + ARB 복합체(ARNI), BNP 분해 억제, HFrEF 1차 표준"}, {"generic": "스피로놀락톤 (spironolactone) / 에플레레논 (eplerenone)", "brand": "알닥톤 / 인스피라", "role": "무기질코르티코이드 수용체 길항제(MRA), 심근 섬유화 억제, 사망률 감소"}, {"generic": "엠파글리플로진 (empagliflozin) / 다파글리플로진 (dapagli)", "brand": "자디앙 / 포시가", "role": "SGLT2 억제제, 당뇨 유무 불문 심부전 입원율 및 사망률 유의적 감소"}, {"generic": "디곡신 (digoxin)", "brand": "디고신", "role": "강심배당체, Na+/K+-ATPase 억제로 심근수축력 증가 및 미주신경 흥분으로 심박수 조절"}, {"generic": "밀리논 (milrinone)", "brand": "프리마코", "role": "PDE-3 억제제, cAMP 증가로 급성 대상부전 심부전 단기 강심/혈관확장"}], "moa": "사쿠비트릴은 나트륨이뇨펩티드 (natriuretic peptide, BNP)를 분해하는 효소인 네프릴리신 (neprilysin)을 억제하여 이뇨와 혈관확장을 유도합니다. 베타차단제와 MRA는 만성 심부전의 악순환인 교감신경 및 알도스테론에 의한 심장 리모델링 (cardiac remodeling)을 차단합니다. 디곡신은 심근세포막의 Na+/K+-ATPase를 억제하여 세포 내 Na+를 축적시키고, 이는 Na+/Ca2+ 교환체를 통한 칼슘 배출을 줄여 근육세포질세망(SR)의 칼슘 저장을 늘려 수축력을 높입니다.", "indications": ["박출률 감소 심부전 (heart failure with reduced ejection fraction, HFrEF)", "심방세동 (atrial fibrillation) 동반 심부전 환자의 심박수 조절", "급성 비보상성 심부전 (acute decompensated heart failure)"], "adrs": ["디곡신: 좁은 치료지수 (therapeutic index, TI), 구역, 구토, 황시증 (xanthopsia, 노란색으로 보임), 심실성 부정맥", "MRA: 고칼륨혈증, 여성형 유방 (gynecomastia, 스피로놀락톤)", "ARNI: 저혈압, 고칼륨혈증, 혈관부종"], "ddis_and_cautions": ["저칼륨혈증 (hypokalemia)은 Na+/K+-ATPase에 대한 디곡신의 결합을 촉진하여 치명적인 디곡신 중독 부정맥을 유발함 (루프 이뇨제 병용 시 전해질 감시 필수)", "ACEI에서 엔트레스토(ARNI)로 전환할 때는 브라디키닌 과다 축적으로 인한 혈관부종을 막기 위해 최소 36시간의 휴약기(washout period)를 가져야 함", "에플레레논은 스피로놀락톤과 달리 안드로겐 수용체 결합이 없어 여성형 유방 부작용이 거의 없음"], "pharmacist_tips": "💡 디곡신을 복용하는 환자가 사물이 노랗게 보이거나 번쩍거리고 입맛이 전혀 없으며 메스껍다고 호소하면 즉시 혈중 디곡신 농도와 혈청 칼륨 수치를 검사받도록 지도해야 합니다. 저칼륨혈증을 방지하기 위해 이뇨제와 병용 시 정기 검사를 강조합니다.", "exam_points": "심부전 환자의 장기 생존율(사망률)을 감소시키는 약물군(Fantastic 4: ACEI/ARB/ARNI, 베타차단제, MRA, SGLT2i)과 생존율 개선 없이 증상 완화만 돕는 약물(이뇨제, 디곡신)의 구분이 국가고시 단골 문제입니다."}, {"id": "diuretic_agents", "num": 7, "category": "심혈관계 (CVS)", "name": "이뇨약 (diuretic agents)", "sub_category": "신장 세뇨관 이뇨제", "short_desc": "신세뇨관의 각 부위별 나트륨 재흡수를 차단하여 체액량을 줄이고 부종과 혈압을 조절하는 필수 약물군", "drugs": [{"generic": "푸로세미드 (furosemide) / 토라세미드 (torsemide)", "brand": "라식스 / 토라", "role": "고리 이뇨제 (loop diuretics), 헨레고리 상행각 NKCC2 억제, 최강의 이뇨력, 급성 폐부종"}, {"generic": "히드로클로로티아지드 (HCTZ) / 클로르탈리돈", "brand": "다이크로짯", "role": "티아지드계 (thiazides), 원위세뇨관 NCC 억제, 본태성 고혈압 1차 치료"}, {"generic": "스피로놀락톤 (spironolactone)", "brand": "알닥톤", "role": "집합관 알도스테론 수용체 길항제, 칼륨 보존성 이뇨약, 간경화 복수"}, {"generic": "아밀로라이드 (amiloride) / 트리암테렌", "brand": "아밀로라이드", "role": "집합관 상피 나트륨 통로(ENaC) 직접 차단, 칼륨 배출 차단"}, {"generic": "아세타졸라미드 (acetazolamide)", "brand": "아세타졸", "role": "근위세뇨관 탄산탈수효소 억제제(CAI), 고산병 예방 및 녹내장 안압 저하"}, {"generic": "만니톨 (mannitol)", "brand": "만니톨주", "role": "삼투성 이뇨제, 뇌압(ICP) 상승 및 급성 뇌부종 응급 강하"}], "moa": "고리 이뇨제는 헨레고리 굵은 상행각 (thick ascending limb, TAL)의 Na+/K+/2Cl- 공수송체 (NKCC2)를 가역적으로 차단하여 막대한 양의 나트륨과 물, 칼슘, 마그네슘을 배설합니다. 티아지드는 원위곱슬세관 (distal convoluted tubule, DCT)의 Na+/Cl- 공수송체 (NCC)를 차단하며 역설적으로 칼슘 재흡수를 촉진합니다. 칼륨보존 이뇨제는 피질집합관 (cortical collecting tubule)에서 알도스테론을 차단하거나 ENaC 통로를 막아 K+ 분비를 보존합니다.", "indications": ["급성 폐부종 (acute pulmonary edema) 및 울혈성 심부전", "본태성 고혈압", "간경화성 복수 (ascites) 및 신증후군 부종", "급성 고칼슘혈증 (루프 이뇨제 + 생리식염수 병용)", "특발성 고칼슘뇨증 결석 예방 (티아지드)", "급성 고산병 (acute mountain sickness) 예방"], "adrs": ["고리 이뇨제: 저칼륨혈증 (hypokalemia), 저마그네슘혈증, 저칼슘혈증, 고요산혈증 (통풍 악화), 이독성 (ototoxicity, 가역적 난청)", "티아지드: 저칼륨혈증, 저나트륨혈증, 고칼슘혈증 (hypercalcemia), 고혈당, 고지혈증", "칼륨보존제: 고칼륨혈증 (중증 부정맥 유발)"], "ddis_and_cautions": ["아미노글리코사이드계 항생제와 루프 이뇨제(푸로세미드) 병용 시 이독성 및 신독성 상승작용 위험", "설폰아마이드 (sulfonamide) 알레르기 환자는 설파 구조를 가진 푸로세미드, 티아지드 사용 시 교차 알레르기 주의 (에타크린산은 설파 구조 없음)", "NSAIDs는 신장 프로스타글란딘 합성을 차단하여 루프 이뇨제의 혈관확장 및 이뇨 효과를 현저히 떨어뜨림"], "pharmacist_tips": "💡 루프 및 티아지드 이뇨제는 야간 빈뇨로 인한 수면 방해와 낙상을 예방하기 위해 1일 1회 복용 시 가급적 아침에 복용하도록 복약지도합니다. 어지러움이 발생할 수 있으므로 앉거나 누웠다 일어날 때 천천히 움직이도록 당부합니다.", "exam_points": "칼슘(Ca2+) 배설의 차이가 핵심 출제 포인트입니다: 루프 이뇨제는 소변 중 칼슘 배설을 증가시켜 고칼슘혈증 치료에 쓰이고, 티아지드는 세뇨관에서 칼슘 재흡수를 촉진하여 칼슘성 신장결석 예방에 사용됩니다."}, {"id": "antithrombotics", "num": 8, "category": "혈액 및 항혈전 (Hematology)", "name": "항응고약 (anticoagulants), 항혈소판약 (antiplatelets) 및 혈전용해약 (fibrinolytics)", "sub_category": "혈액응고 및 지혈 장애", "short_desc": "정맥혈전증을 예방하는 비타민 K 길항제 및 DOAC, 동맥혈전증을 예방하는 항혈소판제, 급성 색전을 녹이는 t-PA", "drugs": [{"generic": "와파린 (warfarin)", "brand": "쿠마딘", "role": "비타민 K 에폭시드 환원효소(VKOR) 억제, PT/INR 모니터링 필수, 비판막성/판막성 혈전"}, {"generic": "리바록사반 (rivaroxaban) / 아픽사반 (apixaban)", "brand": "자렐토 / 엘리퀴스", "role": "경구용 직접적 Xa 억제제(DOAC), 모니터링 불필요, 비판막성 심방세동 뇌졸중 예방"}, {"generic": "다비가트란 (dabigatran)", "brand": "프라닥사", "role": "경구용 직접적 트롬빈(IIa) 억제제(DTI), 역전제 이다루시주맙 존재"}, {"generic": "헤파린 (UFH / LMWH 에녹사파린)", "brand": "크렉산", "role": "안티트롬빈 III 촉진 항응고제, 급성 폐색전증/심근경색, 임신 중 안전"}, {"generic": "아스피린 (aspirin)", "brand": "아스피린프로텍트", "role": "COX-1 비가역적 아세틸화, TXA2 억제, 동맥경화 심혈관질환 2차 예방(100mg)"}, {"generic": "클로피도그렐 (clopidogrel)", "brand": "플라빅스", "role": "P2Y12 ADP 수용체 비가역 차단 전구약물(CYP2C19 대사), 스텐트 혈전 예방"}, {"generic": "알테플라제 (alteplase, t-PA)", "brand": "액티라제", "role": "재조합 조직 플라스미노겐 활성제, 급성 허혈성 뇌졸중(4.5시간 이내) 혈전용해"}], "moa": "와파린은 간에서 비타민 K 의존성 응고인자(II, VII, IX, X, Protein C/S)의 감마-카르복실화 (gamma-carboxylation)를 억제합니다. DOAC은 응고폭포의 공통 경로인 인자 Xa 또는 트롬빈 (thrombin, IIa)을 직접 억제합니다. 헤파린은 내인성 안티트롬빈 (antithrombin III)의 활성을 1,000배 이상 가속화합니다. 아스피린은 혈소판의 시클로옥시게나아제-1 (COX-1)을 비가역적으로 차단하여 트롬복산 A2 (thromboxane A2, TXA2) 합성을 억제합니다.", "indications": ["심방세동 (atrial fibrillation) 환자의 색전성 뇌졸중 예방", "심부정맥 혈전증 (deep vein thrombosis, DVT) 및 폐색전증 (pulmonary embolism, PE)", "급성 관상동맥 증후군 (ACS) 및 경피적 관상동맥 중재술(PCI) 후 스텐트 혈전증 예방", "급성 허혈성 뇌졸중 초기 혈전 용해", "기계식 인공심장판막 치환술 후 혈전 예방 (와파린 only)"], "adrs": ["출혈 (bleeding: 뇌출혈, 위장관 출혈, 잇몸 출혈, 혈뇨)", "헤파린 기인성 혈소판 감소증 (heparin-induced thrombocytopenia, HIT, 면역 복합체 매개)", "와파린 초기 피부 괴사 (skin necrosis, Protein C의 급격한 고갈)", "아스피린: 위궤양, 천식 유발 (aspirin-induced asthma)"], "ddis_and_cautions": ["와파린은 태반을 통과하여 태아 뼈 기형과 출혈을 일으키므로 임신 중 금기 (임신부 항응고는 헤파린/LMWH 사용)", "클로피도그렐은 간 CYP2C19 효소에 의해 활성화되는 전구약물이므로, CYP2C19 억제제인 오메프라졸 (omeprazole)과 병용 시 항혈소판 효능이 급감함 (판토프라졸 대체)", "와파린 복용 환자는 비타민 K가 다량 함유된 짙은 녹색 채소(시금치, 케일, 청경채) 섭취량을 급격히 늘리거나 줄이지 않고 일정하게 유지해야 함", "출혈 시 역전제: 헤파린 → 프로타민 (protamine), 와파린 → 비타민 K1 (phytonadione) 및 4인자 프로트롬빈복합농축액(PCC), 다비가트란 → 이다루시주맙 (idarucizumab), 리바록사반/아픽사반 → 안덱사넷 알파 (andexanet alfa)"], "pharmacist_tips": "💡 DOAC(자렐토, 엘리퀴스 등) 복용 환자에게는 와파린처럼 잦은 피검사는 필요 없으나, 반감기가 짧아 하루만 복약을 걸러도 뇌졸중 위험이 급격히 증가하므로 매일 정해진 시간에 절대 거르지 않고 복용하는 복약 순응도가 생명임을 강조합니다.", "exam_points": "기계 판막(mechanical heart valve)을 가진 환자에게는 DOAC이 금기이며 오직 와파린(INR 목표 2.5~3.5)만 사용 가능하다는 임상 가이드라인 원칙이 빈출 문제입니다."}, {"id": "lipid_lowering_drugs", "num": 9, "category": "심혈관계 (CVS)", "name": "지질이상 치료약 (lipid-lowering drugs)", "sub_category": "이상지질혈증 및 죽상동맥경화증", "short_desc": "HMG-CoA 환원효소를 억제하여 LDL-C를 극적으로 낮추는 스타틴과 에제티미브, PCSK9 항체, 중성지방 치료제 피브레이트", "drugs": [{"generic": "아토르바스타틴 (atorvastatin) / 로수바스타틴 (rosuvastatin)", "brand": "리피토 / 크레스토", "role": "고강도 스타틴 (statins), 반감기 14~20시간으로 복용시간 무관, LDL-C 50% 이상 감소"}, {"generic": "심바스타틴 (simvastatin) / 프라바스타틴 (pravastatin)", "brand": "조코 / 메바로친", "role": "단시간형 스타틴, 야간 콜레스테롤 합성 저해를 위해 취침 전 복용 권장"}, {"generic": "에제티미브 (ezetimibe)", "brand": "이지트롤", "role": "소장 NPC1L1 수송체 억제제, 콜레스테롤 장내 흡수 차단, 스타틴 병용 1순위"}, {"generic": "에볼로쿠맙 (evolocumab) / 알리로쿠맙", "brand": "레파타 / 프랄런트", "role": "PCSK9 단일클론항체, LDL 수용체 재활용 촉진, 초고위험군 피하주사"}, {"generic": "페노피브레이트 (fenofibrate)", "brand": "리피딜", "role": "PPAR-α 작용제, 지단백 지질분해효소 활성화, 중성지방(TG) 50% 이상 급감"}, {"generic": "오메가-3 지방산 (아이코사펜트 에틸)", "brand": "바세파", "role": "고순도 EPA 제제, 간의 VLDL 합성 억제 및 심혈관 사망률 감소"}], "moa": "스타틴은 콜레스테롤 생합성의 속도결정효소인 HMG-CoA 환원효소 (HMG-CoA reductase)를 경쟁적으로 억제합니다. 간세포 내 콜레스테롤이 감소하면 SREBP-2가 활성화되어 간세포 표면의 LDL 수용체 (LDL receptor) 발현이 증가하고, 혈중 LDL 및 VLDL을 대량 섭취하여 혈중 농도를 낮춥니다. PCSK9 억제제는 LDL 수용체를 분해하는 PCSK9 단백질을 무력화하여 수용체 재활용을 극대화합니다. 피브레이트는 PPAR-α를 자극하여 지방산 산화를 촉진하고 중성지방을 분해합니다.", "indications": ["고콜레스테롤혈증 (hypercholesterolemia) 및 죽상경화성 심혈관질환 (ASCVD) 1차/2차 예방", "급성 관상동맥 증후군 환자의 초고위험군 지질 관리", "중증 고중성지방혈증 (급성 췌장염 예방, TG > 500 mg/dL)", "동형접합 가족성 고콜레스테롤혈증 (HoFH)"], "adrs": ["근육병증 (myopathy), 근육통 (myalgia) 및 횡문근융해증 (rhabdomyolysis, 극히 드묾)", "간효소 수치(AST/ALT) 상승", "혈당 미세 상승 및 신규 당뇨병 발생 위험 소폭 증가", "피브레이트: 담석증 (cholelithiasis)"], "ddis_and_cautions": ["스타틴과 젬피브로질(gemfibrozil) 병용 시 글루쿠론산 포합 억제로 횡문근융해증 위험이 극도로 높아지므로 절대 금기 (피브레이트 병용 시 페노피브레이트 선택)", "심바스타틴, 아토르바스타틴은 간 CYP3A4로 대사되므로 마크로라이드 항생제(클래리스로마이신), 아졸계 항진균제, 자몽주스와 병용 시 혈중농도 급증 주의", "임신 중 스타틴은 태아 콜레스테롤 합성 저해 우려로 금기 (Category X)"], "pharmacist_tips": "💡 반감기가 짧은 심바스타틴, 로바스타틴은 간에서 콜레스테롤 생합성이 가장 활발한 야간에 작용하도록 저녁 식후 또는 취침 전 복용해야 하지만, 아토르바스타틴과 로수바스타틴은 반감기가 길어 하루 중 편한 시간에 규칙적으로 복용하면 됩니다. 복용 중 갈색 소변(콜라색)이나 원인 모를 심한 전신 근육통이 나타나면 즉시 복용을 멈추고 내원하도록 교육합니다.", "exam_points": "스타틴 작용기전의 본질은 단순히 효소를 억제하는 데 그치지 않고, 그 결과로 간세포 표면의 'LDL 수용체 발현이 상향조절(up-regulation)'되어 혈중 LDL을 청소한다는 2단계 메커니즘이 단골 정답입니다."}, {"id": "asthma_and_copd", "num": 10, "category": "호흡기계 (Respiratory)", "name": "천식 및 만성 폐쇄성 폐질환 치료약 (drugs for asthma & COPD)", "sub_category": "기관지 확장제 및 항염증제", "short_desc": "기도 염증을 억제하는 흡입 스테로이드(ICS), 평활근을 확장하는 기관지확장제(LABA/LAMA), 류코트리엔 조절제 및 생물학적 제제", "drugs": [{"generic": "부데소니드 (budesonide) / 플루티카손 (fluticasone)", "brand": "풀미코트 / 후릭소타이드", "role": "흡입용 코르티코스테로이드 (ICS), 기도 만성 염증 억제, 천식 조절 1차 표준"}, {"generic": "포모테롤 (formoterol) / 살메테롤 (salmeterol)", "brand": "심비코트(복합) / 세레타이드", "role": "지속성 베타2 작용제 (LABA), ICS와 복합 흡입, 단독 사용 시 사망률 증가"}, {"generic": "몬테루카스트 (montelukast) / 프란루카스트", "brand": "싱귤레어 / 씨투스", "role": "CysLT1 수용체 길항제 (LTRA), 아스피린 유발 천식 및 알레르기 비염 동반에 우수"}, {"generic": "테오필린 (theophylline) / 아미노필린", "brand": "테오크라스", "role": "메틸잔틴계 PDE 억제제, 아데노신 차단 및 HDAC2 활성화, 좁은 안전역"}, {"generic": "오말리주맙 (omalizumab)", "brand": "졸레어", "role": "항-IgE 단일클론항체, 비만세포 결합 차단, 중증 난치성 알레르기 천식 피하주사"}], "moa": "ICS는 세포 내 당질코르티코이드 수용체에 결합하여 핵 내 전사인자(NF-κB)를 억제하고 염증성 사이토카인(IL-4, IL-5, IL-13) 생성을 차단합니다. LABA는 기도 평활근의 β2 수용체를 자극하여 cAMP를 올려 기관지를 확장합니다. LTRA는 기관지 수축과 혈관 투과성을 유발하는 류코트리엔 D4 (LTD4)의 결합을 경쟁적으로 차단합니다. 테오필린은 PDE를 억제하여 cAMP를 보존하고 아데노신 유발 기관지 수축을 막습니다.", "indications": ["기관지 천식 (bronchial asthma)의 장기 조절 및 급성 발작 완화", "만성 폐쇄성 폐질환 (COPD)의 호흡곤란 완화 및 급성 악화 예방", "운동 유발성 기관지경련 (exercise-induced bronchospasm)", "아스피린 과민성 천식 (aspirin-exacerbated respiratory disease, AERD)"], "adrs": ["ICS: 구강 인두 칸디다증 (oral candidiasis), 쉰 목소리 / 발성장애 (dysphonia)", "LABA: 빈맥, 골격근 미세 떨림 (tremor), 저칼륨혈증", "몬테루카스트: 신경정신과적 부작용 (악몽, 불면, 우울, 미국 FDA 블랙박스 경고)", "테오필린: 구역, 구토, 불면, 고용량 시 심실성 부정맥 및 간질 발작"], "ddis_and_cautions": ["천식 환자에게 LABA 단독 요법은 기저 염증을 가려 천식 관련 사망률을 증가시키므로 반드시 ICS와 병용해야 함 (GINA 가이드라인 원칙)", "아스피린 및 NSAIDs는 COX-1을 차단하여 아라키돈산 대사를 류코트리엔(LT) 경로로 쏠리게 하여 치명적인 아스피린 천식을 유발할 수 있음", "테오필린은 CYP1A2로 대사되므로 시프로플록사신, 에리스로마이신 병용 시 독성 급증"], "pharmacist_tips": "💡 흡입용 스테로이드(ICS)를 사용한 후에는 구강 내 국소 면역 저하로 인한 곰팡이 감염(구내 칸디다증)과 목 쉼을 예방하기 위해 반드시 물로 입안과 목을 2~3회 깨끗이 헹궈 뱉어내도록 강력히 지도해야 합니다.", "exam_points": "아스피린 유발 천식(AERD)의 발병 기전: COX 억제 → 프로스타글란딘 생성 차단 → 기질이 리폭시게나아제(LOX) 경로로 편향 → 류코트리엔(LTC4, LTD4, LTE4) 과다 생성 → 급격한 기관지 수축. 이에 대한 최적 선택약은 LTRA(몬테루카스트)입니다."}, {"id": "gi_tract_drugs", "num": 11, "category": "소화기계 (Gastrointestinal)", "name": "위장관질환 치료약 (drugs for gastrointestinal diseases)", "sub_category": "소화성 궤양, 위식도역류질환 및 변비/설사", "short_desc": "위산 분비 최종 단계를 차단하는 PPI 및 P-CAB, 점막 방어인자 증강제, 제균요법 항생제 및 완하제", "drugs": [{"generic": "에소메프라졸 (esomeprazole) / 오메프라졸", "brand": "넥시움 / 오엠피", "role": "양성자 펌프 억제제 (PPI), H+/K+-ATPase 비가역 차단, GERD/궤양 1차 치료"}, {"generic": "테고프라잔 (tegoprazan) / 펙수프라잔", "brand": "케이캡 / 펙수클루", "role": "칼륨 경쟁적 위산분비 억제제 (P-CAB), 산 활성화 불필요, 식사무관, 빠른 발현"}, {"generic": "파모티딘 (famotidine) / 라니티딘", "brand": "가스터", "role": "H2 수용체 길항제 (H2RA), 야간 위산분비 억제에 효과적, 내성 발생 주의"}, {"generic": "수크랄페이트 (sucralfate) / 비스무트", "brand": "아스테릭 / 데놀", "role": "점막 보호제, 궤양 기저부 단백질과 결합하여 물리적 방어벽 형성"}, {"generic": "메토클로프라미드 (metoclopramide) / 돔페리돈", "brand": "맥페란 / 모티리움", "role": "도파민 D2 수용체 길항제, 위장관 운동 촉진 및 항구토"}, {"generic": "락툴로오스 (lactulose) / 마그밀 (MgOH)", "brand": "듀파락 / 마그밀", "role": "삼투성 완하제 (osmotic laxatives), 장내 수분 저류, 간성뇌증 암모니아 배출"}, {"generic": "로페라미드 (loperamide)", "brand": "로modium", "role": "말초 오피오이드 μ-수용체 효능약, 장관 연동운동 억제 지사제"}], "moa": "PPI는 불활성 전구약물 형태로 흡수되어 위벽세포 세관의 강산 환경에서 활성형 티오필릭 술펜아미드 (thiophilic sulfenamide)로 변환된 후, H+/K+-ATPase 펌프의 시스테인 잔기와 공유결합을 형성하여 위산 분비의 최종 공통 단계를 비가역적으로 차단합니다. P-CAB은 산에 의한 활성화 없이 칼륨(K+) 이온과 경쟁적으로 펌프에 결합하여 가역적으로 즉시 억제합니다.", "indications": ["위식도 역류 질환 (GERD)", "소화성 궤양 (위궤양, 십이지장궤양)", "헬리코박터 파일로리 (Helicobacter pylori) 박멸 제균요법", "NSAIDs 유발 궤양의 예방 및 치료", "졸링거-엘리슨 증후군 (Zollinger-Ellison syndrome)"], "adrs": ["PPI 장기 복용 시: 위산 저하로 인한 칼슘/마그네슘 흡수 장애 및 골다공증 골절 위험, 비타민 B12 결핍, 클로스트리디움 디피실 (C. difficile) 대장염 위험", "메토클로프라미드: 중추 D2 차단으로 인한 추체외로 증상 (EPS, 급성 근긴장이상증)", "비스무트: 대변 색이 검게 변함 (흑변, 위장관 출혈과 감별 필요)"], "ddis_and_cautions": ["PPI 경구제는 위산에 파괴되지 않도록 장용 코팅되어 있으므로 부수거나 씹어 먹지 말고 온전하게 삼켜야 함", "PPI는 공복 시(아침 식전 30~60분)에 복용해야 활성화되는 양성자 펌프를 가장 효과적으로 억제할 수 있음 (P-CAB은 식사 무관)", "오메프라졸은 간 대사효소 CYP2C19를 억제하여 항혈소판제 클로피도그렐의 활성화를 저해하므로 병용을 피함", "헬리코박터 제균 1차 표준 3제 요법: PPI + 아목시실린 1g + 클래리스로마이신 500mg 1일 2회 14일 투여"], "pharmacist_tips": "💡 PPI는 활성화된 펌프에만 결합하므로 반드시 '아침 식사 30분~1시간 전'에 복용해야 하루 종일 산 억제 효과가 극대화된다고 설명합니다. 비스무트 성분을 복용할 때는 대변과 혀가 까맣게 변할 수 있으나 정상적인 반응이므로 놀라지 말라고 미리 안심시킵니다.", "exam_points": "위산 분비 자극 경로: 가스트린(CCK-B), 히스타민(H2), 아세틸콜린(M3)의 세 경로가 결국 세포막의 양성자 펌프(H+/K+-ATPase)로 수렴하므로, 수용체 차단제(H2RA)보다 펌프 자체를 막는 PPI/P-CAB이 압도적인 산 억제 효능을 보입니다."}, {"id": "antidiabetic_drugs", "num": 12, "category": "내분비 및 대사 (Endocrine)", "name": "인슐린 (insulins) 및 경구 혈당강하제 (oral hypoglycemic agents)", "sub_category": "당뇨병 약리학", "short_desc": "간의 당신생을 억제하는 메트포르민, 요당 배출 SGLT2 억제제, 인크레틴 GLP-1RA 및 DPP4 억제제, 인슐린 제제", "drugs": [{"generic": "메트포르민 (metformin)", "brand": "글루코파지", "role": "비구아나이드계, 2형 당뇨병 1차 표준, AMPK 활성화로 간 포도당 생성 억제, 체중중립"}, {"generic": "엠파글리플로진 (empagliflozin) / 다파글리플로진", "brand": "자디앙 / 포시가", "role": "SGLT2 억제제, 신장 근위세뇨관 포도당 재흡수 차단, 심부전/신장보호 입증"}, {"generic": "세마글루타이드 (semaglutide) / 둘라글루타이드", "brand": "오젬픽, 위고비 / 트루리시티", "role": "GLP-1 수용체 작용제, 인슐린 분비 촉진, 글루카곤 억제, 위배출 지연, 강력한 체중감소"}, {"generic": "시타글립틴 (sitagliptin) / 리나글립틴", "brand": "자누비아 / 트라젠타", "role": "DPP-4 억제제, 내인성 GLP-1 분해 억제, 식후 혈당 개선, 저혈당 위험 낮음"}, {"generic": "글리메피리드 (glimepiride)", "brand": "아마릴", "role": "설포닐유레아(SU), 췌장 베타세포 K-ATP 통로 차단으로 인슐린 분비 강제 촉진, 저혈당 주의"}, {"generic": "인슐린 글라진 (glargine) / 아스파트 (aspart)", "brand": "란투스 / 노보래피드", "role": "기저 인슐린(24시간 지속) 및 초속효성 식전 인슐린(식후 혈당 조절)"}], "moa": "메트포르민은 간세포의 AMPK를 활성화하여 당신생 (gluconeogenesis)을 억제하고 말초 인슐린 감수성을 개선합니다. SGLT2 억제제는 신장 근위세뇨관의 SGLT2 수송체를 억제하여 여과된 포도당의 재흡수를 막고 소변으로 배출시킵니다. GLP-1RA와 DPP4 억제제는 인크레틴 (incretin) 경로를 통해 혈당 의존적으로 인슐린 분비를 촉진하고 글루카곤 분비를 억제합니다. 설포닐유레아는 췌장 베타세포막의 ATP-의존성 K+ 통로를 닫아 탈분극을 유도하고 인슐린을 방출시킵니다.", "indications": ["제1형 당뇨병 (인슐린 필수)", "제2형 당뇨병 (단독요법 및 병용요법)", "당뇨병성 신장질환 및 박출률 감소 심부전 (SGLT2 억제제)", "심혈관 질환 고위험군 당뇨병 (GLP-1RA, SGLT2 억제제)", "비만 치료 (GLP-1 수용체 작용제 고용량)"], "adrs": ["메트포르민: 위장관 부작용 (복통, 설사, 소화불량), 젖산 산증 (lactic acidosis, 신부전 시 치명적)", "설포닐유레아 / 인슐린: 심각한 저혈당 (hypoglycemia), 체중 증가", "SGLT2 억제제: 비뇨생식기 진균 감염 (요로감염, 칸디다 질염), 다뇨 및 탈수, 정상혈당성 당뇨병성 케톤산증 (euglycemic DKA)", "GLP-1RA: 오심, 구토, 변비, 급성 췌장염 위험"], "ddis_and_cautions": ["메트포르민은 eGFR < 30 mL/min/1.73m2인 중증 신장애 환자에게 젖산산증 위험으로 금기", "조영제 검사(CT 등)를 받는 환자는 급성 신부전 및 젖산산증 예방을 위해 검사 당일부터 48시간 동안 메트포르민 복용을 일시 중단해야 함", "SGLT2 억제제는 인슐린 비의존적으로 작용하여 단독 투여 시 저혈당 위험이 거의 없으나, 탈수를 유발하므로 고령자 수분 섭취 권장"], "pharmacist_tips": "💡 메트포르민을 처음 처방받은 환자에게는 복통과 설사 부작용을 줄이기 위해 반드시 식사 직후에 복용하도록 복약지도하며, 증상이 지속되면 서방정(XR)으로 변경하거나 용량을 조절할 수 있음을 안내합니다. 저혈당 증상(식은땀, 떨림, 어지러움) 발생 시 즉시 사탕 3~4알이나 주스 반 컵을 섭취하도록 교육합니다.", "exam_points": "심혈관 질환(ASCVD)이나 심부전, 만성 신장병(CKD)을 동반한 2형 당뇨병 환자에게 당화혈색소 수치와 관계없이 우선적으로 권고되는 1차 약제는 심혈관/신장 보호 이점이 입증된 SGLT2 억제제 및 GLP-1 수용체 작용제입니다."}, {"id": "cns_and_psychiatric", "num": 13, "category": "중추신경계 (CNS)", "name": "진정수면제 (sedative-hypnotics), 항우울제 (antidepressants) 및 파킨슨병 치료약 (antiparkinsonian drugs)", "sub_category": "신경정신약리학", "short_desc": "GABA 수용체를 활성화하는 벤조디아제핀, 모노아민 재흡수를 차단하는 SSRI/SNRI, 도파민 경로를 보충하는 항파킨슨제", "drugs": [{"generic": "로라제팜 (lorazepam) / 디아제팜 (diazepam)", "brand": "아티반 / 바륨", "role": "벤조디아제핀계 (BZD), GABAA 양성 조절제, 항불안, 진정, 간질지속상태 응급"}, {"generic": "졸피뎀 (zolpidem)", "brand": "스틸녹스", "role": "비BZD계 이미다조피리딘 (Z-drug), BZ1/α1 선택적 수용체 결합, 신속한 수면 유도"}, {"generic": "에스시탈로프람 (escitalopram) / 세르트랄린", "brand": "렉사프로 / 졸로푸트", "role": "선택적 세로토닌 재흡수 억제제 (SSRI), 주요 우울장애 및 불안장애 1차 선택"}, {"generic": "둘록세틴 (duloxetine) / 벤라팍신", "brand": "심발타 / 이팩사", "role": "세로토닌-노르에피네프린 재흡수 억제제 (SNRI), 우울증 및 당뇨병성 신경병증 통증"}, {"generic": "레보도파/카비도파 (levodopa/carbidopa)", "brand": "마도파, 시네메트", "role": "도파민 전구물질 + 말초 탈탄산효소 억제제, 파킨슨병 운동증상 치료의 골드스탠다드"}, {"generic": "프라미펙솔 (pramipexole) / 로피니롤", "brand": "미라펙스 / 리큅", "role": "비맥각 도파민 D2/D3 수용체 효능약, 초기 파킨슨병 및 하지불안증후군"}, {"generic": "엔타카폰 (entacapone)", "brand": "콤탄, 스타레보(복합)", "role": "말초 COMT 억제제, 레보도파 대사 차단으로 뇌 전달 증가, On-Off 현상 개선"}], "moa": "벤조디아제핀은 GABAA 수용체의 알로스테릭 부위에 결합하여 염소이온(Cl-) 통로의 개방 '빈도(frequency)'를 증가시켜 신경세포를 과분극시킵니다 (바비튜레이트는 개방 '시간' 연장). SSRI/SNRI는 시냅스전 신경세포막의 세로토닌 수송체 (SERT) 및 노르에피네프린 수송체 (NET)를 차단하여 시냅스 틈의 모노아민 농도를 높입니다. 레보도파는 L-아미노산 수송체(LAT)를 통해 혈액-뇌 장벽 (blood-brain barrier, BBB)을 통과한 후 뇌 내에서 도파민으로 탈탄산화됩니다.", "indications": ["불안 장애 (anxiety disorders) 및 불면증 (insomnia)", "주요 우울 장애 (major depressive disorder)", "파킨슨병 (Parkinson's disease) 및 하지불안 증후군", "간질지속상태 (status epilepticus) 및 급성 알코올 금단 증후군", "신경병증성 통증 및 섬유근육통"], "adrs": ["BZD: 주간 졸림, 운동실조 (ataxia), 낙상, 약물 의존성 및 내성, 금단 증상 (해독제: 플루마제닐 flumazenil)", "SSRI/SNRI: 초기 오심, 불면/불안 악화, 성기능 장애 (성욕 감퇴, 사정 지연), 체중 증가, 세로토닌 증후군", "레보도파: 운동이상증 (dyskinesia), 약효소진 및 On-Off 현상, 기립성 저혈압, 환각 및 망상"], "ddis_and_cautions": ["SSRI와 MAOI 병용 시 고열, 근육간대경련, 자율신경 불안정을 초래하는 치명적 세로토닌 증후군 (serotonin syndrome) 유발 (최소 2~5주 휴약기 필수)", "카비도파 없는 단독 레보도파는 말초에서 99%가 도파민으로 조기 전환되어 극심한 구토와 부정맥을 일으키고 뇌로는 1%만 도달함 (카비도파 병용 필수)", "비타민 B6 (pyridoxine)는 말초 도파 탈탄산효소를 촉진하여 레보도파의 뇌 유입을 방해하므로 고용량 복용 주의 (카비도파 복합제 복용 시에는 영향 감소)"], "pharmacist_tips": "💡 항우울제(SSRI)는 복용 후 세로토닌 수치는 즉시 증가하지만, 수용체 신경 적응으로 인해 실제 기분 개선 효과는 최소 2~4주가 지나야 나타나므로 초기에 효과가 없다고 임의 중단하지 않도록 격려해야 합니다. 졸피뎀은 복용 즉시 잠자리에 들어야 하며 몽유병(수면 중 이상행동) 발생 위험을 주의시킵니다.", "exam_points": "GABAA 수용체 조절 기전의 차이: 벤조디아제핀은 염소이온 통로 개방 '빈도(Frequency)' 증가, 바비튜레이트는 개방 '지속시간(Duration)' 연장 및 고농도에서 직접 통로를 연다는 점이 국가고시 필수 출제 문항입니다."}, {"id": "opioid_analgesics", "num": 14, "category": "중추신경계 (CNS)", "name": "오피오이드 효능약 (opioid analgesics) 및 길항약 (antagonists)", "sub_category": "마약성 진통제 및 급성 중독 해독", "short_desc": "중추 신경계 뮤(μ) 오피오이드 수용체에 작용하여 강력한 진통을 유도하는 마약성 진통제와 과량 투여 역전제 날록손", "drugs": [{"generic": "모르핀 (morphine)", "brand": "엠에스콘틴", "role": "천연 아편 알칼로이드, 강력한 뮤(μ) 완전 효능약, 암성 통증 골드스탠다드"}, {"generic": "펜타닐 (fentanyl)", "brand": "듀로제식디트랜스", "role": "합성 마약성 진통제, 모르핀의 100배 역가, 지용성 높아 경피 패치제 사용"}, {"generic": "옥시코돈 (oxycodone)", "brand": "오시콘틴, 아이알코돈", "role": "반합성 경구 오피오이드, 경구 생체이용률 우수, 서방정 및 즉시방출정"}, {"generic": "트라마돌 (tramadol)", "brand": "트리돌", "role": "약한 뮤 효능약 + SERT/NET 재흡수 억제 이중 작용, 중등도 통증"}, {"generic": "날록손 (naloxone)", "brand": "날록손주", "role": "순수 오피오이드 길항약, 오피오이드 과량투여 호흡억제 즉시 역전"}, {"generic": "메타돈 (methadone) / 부프레노르핀", "brand": "메타돈", "role": "긴 반감기 효능약 및 부분효능약, 마약 중독(오피오이드 남용) 대체 유지요법"}], "moa": "중추신경계 상행성 통증 전달 경로의 척수 후각 및 뇌간에 분포하는 뮤(μ), 카파(κ), 델타(δ) 오피오이드 수용체(Gi/o 단백질 연계)에 결합합니다. 시냅스전 막의 전압개폐성 칼슘 통로를 닫아 흥분성 신경전달물질(글루타메이트, P물질) 유리를 억제하고, 시냅스후 막의 칼륨(K+) 통로를 열어 세포막을 과분극시킴으로써 통증 신호 전도를 차단합니다.", "indications": ["중등도 및 중증 급만성 통증 (수술 후 통증, 외상, 심근경색 통증)", "말기 암 환자의 암성 통증 (cancer pain)", "오피오이드 과량 투여에 의한 급성 호흡억제 응급 역전 (날록손)", "마약 남용 중독 재활 프로그램 유지 요법"], "adrs": ["호흡 억제 (respiratory depression, 치명적 사망 원인)", "심한 변비 (constipation, 내성이 생기지 않음)", "오심 및 구토 (구토중추 CTZ 자극)", "진정 및 졸림", "동공축소 / 핀포인트 동공 (miosis, 내성 생기지 않음)", "신체적 의존성 (dependence) 및 금단 증상 (withdrawal)"], "ddis_and_cautions": ["진정수면제(벤조디아제핀, 알코올)와 병용 시 중추신경 억제 및 치명적 호흡 부전 위험이 기하급수적으로 증가함 (FDA 블랙박스 경고)", "두부 손상 (head injury) 환자에게 호흡억제로 인한 혈중 CO2 축적 → 뇌혈관 확장 → 뇌압(ICP) 급상승으로 투여 금기", "완전 효능약(모르핀)을 복용 중인 환자에게 부분 효능약/혼합 길항제(부프레노르핀, 펜타조신)를 투여하면 수용체 경쟁으로 급성 금단 증상 촉발"], "pharmacist_tips": "💡 오피오이드 진통제는 통증 완화 효과에는 내성이 생기지만, '변비'와 '동공 축소'에는 장기 복용해도 내성이 전혀 생기지 않습니다. 따라서 오피오이드 진통제를 처방받은 환자에게는 자극성 완하제(자극성 변비약)나 삼투성 완하제를 반드시 함께 복용하도록 안내해야 합니다.", "exam_points": "오피오이드 과량 투여(급성 중독)의 3대 전형적 징후(Opioid overdose triad): 1) 혼수(Coma), 2) 바늘구멍 동공(Pinpoint pupil, 축동), 3) 호흡 억제(Respiratory depression). 즉시 투여할 특이 해독제는 날록손(Naloxone)입니다."}, {"id": "antimicrobial_drugs", "num": 15, "category": "항감염증 (Antimicrobials)", "name": "항균약 (antimicrobial agents) 및 항생제 계열별 약리학", "sub_category": "감염증 치료 항균제", "short_desc": "세포벽 합성을 억제하는 베타락탐/반코마이신, 단백질 합성을 억제하는 아미노글리코사이드/마크로라이드, 퀴놀론계", "drugs": [{"generic": "아목시실린/클라불란산 (amoxicillin/clavulanate)", "brand": "오구멘틴", "role": "광범위 아미노페니실린 + 베타락타마아제 억제제, 호흡기/이비인후 감염 1차"}, {"generic": "세프트리악손 (ceftriaxone)", "brand": "로세핀", "role": "3세대 세팔로스포린, BBB 통과 우수, 폐렴, 뇌수막염, 임질 1일 1회 정주"}, {"generic": "반코마이신 (vancomycin)", "brand": "반코신", "role": "글리코펩티드계, D-Ala-D-Ala 결합 세포벽 억제, MRSA 감염 1차 치료, TDM 필수"}, {"generic": "아지스로마이신 (azithromycin) / 클래리스로마이신", "brand": "지스로맥스 / 클래시드", "role": "마크로라이드계 50S 리보솜 억제, 비정형 폐렴(마이코플라즈마), 긴 반감기"}, {"generic": "시프로플록사신 (ciprofloxacin) / 레보플록사신", "brand": "시프로바이 / 크라비트", "role": "플루오로퀴놀론계 DNA 자이라아제 억제, 녹농균/요로감염, 18세 미만 연골독성 주의"}, {"generic": "독시사이클린 (doxycycline)", "brand": "바이브라마이신", "role": "테트라사이클린계 30S 억제, 쯔쯔가무시/클라미디아, 소아 치아착색 주의"}], "moa": "베타락탐계(페니실린, 세파)는 세균 세포벽의 펩티도글리칸 교차결합을 담당하는 페니실린 결합 단백질 (penicillin-binding protein, PBP)의 트랜스펩티다아제를 비가역 억제하여 세포벽 합성을 막고 삼투압성 용균(살균)을 유발합니다. 아미노글리코사이드와 테트라사이클린은 세균의 30S 리보솜에 결합하여, 마크로라이드는 50S 리보솜에 결합하여 단백질 번역을 차단합니다. 퀴놀론계는 세균의 DNA 회전효소 (DNA gyrase, topoisomerase II)와 토포이소머라아제 IV를 차단합니다.", "indications": ["지역사회 획득 폐렴 (community-acquired pneumonia, CAP)", "요로 감염증 (urinary tract infection, UTI)", "메티실린 내성 황색포도알균 (MRSA) 감염증", "패혈증 (sepsis) 및 세균성 뇌수막염", "헬리코박터 파일로리 감염증"], "adrs": ["페니실린/세파: 알레르기 과민반응 (아나필락시스, 두드러기)", "반코마이신: 급속 주입 시 히스타민 분비에 의한 레드맨 증후군 (red man syndrome), 신독성, 이독성", "아미노글리코사이드: 비가역적 청각독성 및 가역적 신독성", "퀴놀론: 아킬레스건 파열 및 건염 (tendon rupture), QTc 간격 연장, 광과민성", "테트라사이클린: 뼈 및 치아 영구 착색, 식도 궤양"], "ddis_and_cautions": ["테트라사이클린 및 퀴놀론계는 칼슘, 마그네슘, 철분 등 2가/3가 양이온 제제(제산제, 영양제, 우유)와 착화합물(chelate)을 형성하여 흡수가 급감하므로 2시간 이상 간격 필수", "임산부 및 8세 미만 소아에게 테트라사이클린(치아 변색/뼈 성장 억제)과 18세 미만 소아에게 퀴놀론계(연골 형성 장애) 투여 금기", "반코마이신 정맥 투여 시 레드맨 증후군을 예방하기 위해 최소 60분 이상 천천히 점적 주사해야 함"], "pharmacist_tips": "💡 독시사이클린 정제를 복용할 때는 약이 식도에 달라붙어 식도 궤양을 일으키는 것을 막기 위해 반드시 충분한 물(200mL 이상)과 함께 복용하고, 복용 후 30분 동안은 눕지 않도록 복약지도합니다. 마크로라이드나 퀴놀론 복용 시에는 자몽주스나 특정 부정맥약 병용 여부를 확인합니다.", "exam_points": "살균성(bactericidal) 항생제: 베타락탐, 반코마이신, 아미노글리코사이드, 퀴놀론. 정균성(bacteriostatic) 항생제: 마크로라이드, 테트라사이클린, 클린다마이신, 설폰아마이드. 면역저하 환자나 심내막염, 뇌수막염 치료에는 살균성 약제가 필수적입니다."}, {"id": "antimycobacterial_drugs", "num": 16, "category": "항감염증 (Antimicrobials)", "name": "항미코박테리아약 (antimycobacterial drugs) - 결핵 및 한센병 치료제", "sub_category": "항결핵제 및 다제내성 결핵", "short_desc": "두꺼운 지질 세포벽과 휴면기를 갖는 결핵균을 치료하기 위한 표준 1차 4제 복합요법(HRZE) 및 주요 부작용", "drugs": [{"generic": "이소니아지드 (isoniazid, INH, H)", "brand": "유한짓", "role": "세포벽 마이콜산(mycolic acid) 합성 억제, 살균작용, 말초신경병증 예방 위해 비타민 B6 병용"}, {"generic": "리팜핀 (rifampin, RIF, R)", "brand": "리포덱스", "role": "세균성 DNA 의존성 RNA 중합효소 억제, 소변/눈물 오렌지색 변색, 강력한 CYP 유도제"}, {"generic": "피라진아마이드 (pyrazinamide, PZA, Z)", "brand": "피라진아미드", "role": "산성 환경 세포막 수송체 파괴, 초기 2개월 집중치료기 병용, 고요산혈증/간독성"}, {"generic": "에탐부톨 (ethambutol, EMB, E)", "brand": "마이ambutol", "role": "세포벽 아라비노글리칸 합성 억제, 시신경염(optic neuritis) 적록색맹 부작용 주의"}, {"generic": "답손 (dapsone)", "brand": "답손정", "role": "설폰 유도체, 엽산 합성 억제, 나병(한센병) 1차 치료제, G6PD 결핍 시 용혈성 빈혈"}], "moa": "이소니아지드는 전구약물로 결핵균의 KatG 효소에 의해 활성화되어 마이콜산 (mycolic acid) 생성을 차단합니다. 리팜핀은 세균의 DNA-의존성 RNA 중합효소 (RNA polymerase)의 베타 소단위에 결합하여 전사를 차단합니다. 피라진아마이드는 산성 대식세포 내에서 세포막 기능을 파괴합니다. 에탐부톨은 아라비노실 전이효소 (arabinosyl transferase)를 억제하여 세포벽 골격을 차단합니다.", "indications": ["활동성 결핵 (active tuberculosis) 1차 표준 치료", "잠복 결핵 감염 (latent tuberculosis infection, LTBI) 치료 (INH 단독 또는 INH+RIF)", "나병 (한센병, leprosy, dapsone + rifampin + clofazimine)", "비정형 항산균 (NTM) 감염증"], "adrs": ["INH: 간독성 (간염), 말초신경염 (peripheral neuropathy, 피리독신 배출 촉진)", "RIF: 소변, 땀, 눈물의 주황색 착색 (무해), 간독성, 인플루엔자양 증후군", "PZA: 간독성 (1차 결핵약 중 가장 흔함), 고요산혈증 (통풍 발작)", "EMB: 시신경염 (시력 감퇴, 적록색맹, 시야결손)", "공통: 간기능 장애 (LFT 상승)"], "ddis_and_cautions": ["리팜핀은 간의 사이토크롬 P450 효소(CYP3A4, 2C9, 2C19 등) 및 P-당단백질을 가장 강력하게 유도(induction)하는 약물이므로, 병용 약물(경구피임약, 와파린, 면역억제제, 항HIV약)의 혈중농도를 급락시켜 치료 실패를 유발함", "이소니아지드 복용 시 말초신경염을 예방하기 위해 피리독신 (pyridoxine, 비타민 B6 10~50mg/일)을 반드시 병용 투여함 (특히 당뇨, 알코올 중독, 임산부)", "표준 1차 결핵 치료 요법: 초기 2개월간 4제 병용(HRZE) 후, 감수성 확인 시 유지기 4개월간 2제 병용(HR) 총 6개월 완료"], "pharmacist_tips": "💡 리팜핀을 복용하면 소변, 땀, 침, 눈물이 붉은색이나 오렌지색으로 변할 수 있으나 약물 대사에 의한 무해한 현상이므로 놀라지 말라고 안내하며, 소프트 콘택트렌즈가 영구 착색될 수 있으므로 안경을 착용하도록 권장합니다. 에탐부톨 복용 중 글씨가 흐릿하게 보이거나 붉은색·초록색 구분이 어려우면 즉시 약을 중단하고 안과 진료를 받도록 지도합니다.", "exam_points": "결핵 치료에 최소 3~4가지 약제를 동시에 병용하는 이유: 결핵균의 자연 돌연변이 내성 출현율(10^-6)을 극복하고 다제내성 결핵(MDR-TB)의 출현을 차단하기 위함입니다. 4대 결핵약의 시그니처 부작용 매칭(INH-말초신경염/Vit B6, RIF-오렌지색뇨/CYP유도, PZA-고요산혈증, EMB-시신경염/적록색맹)은 국시 1순위입니다."}, {"id": "cancer_chemotherapy", "num": 17, "category": "항암 및 면역 (Cancer & Immuno)", "name": "암 화학요법 (cancer chemotherapy) 및 표적/면역항암제", "sub_category": "항악성종양제 및 세포주기 약리학", "short_desc": "세포주기 특이/비특이 전통 세포독성 항암제, 타이로신 키나아제 억제제(TKI) 및 면역관문억제제 단일클론항체", "drugs": [{"generic": "시클로포스파미드 (cyclophosphamide)", "brand": "알키록산", "role": "질소 머스터드 알킬화제 (CCNS), DNA 교차결합, 출혈성 방광염(Mesna로 예방)"}, {"generic": "메토트렉세이트 (methotrexate, MTX)", "brand": "엠티엑스", "role": "엽산 유사체 항대사제 (CCS-S기), DHFR 억제, 고용량 투여 시 류코보린 구조요법"}, {"generic": "5-플루오로우라실 (5-FU) / 카페시타빈", "brand": "5-에프유 / 젤로다", "role": "피리미딘 유사체 항대사제, 티미딜산 합성효소(TS) 억제, 대장암 1차"}, {"generic": "독소루비신 (doxorubicin)", "brand": "아드리아마이신", "role": "안트라사이클린계 항생약, 토포이소머라아제 II 억제 및 활성산소, 누적 심장독성 주의"}, {"generic": "파클리탁셀 (paclitaxel) / 도세탁셀", "brand": "탁솔 / 탁소텔", "role": "탁산계 미세관 중합 촉진/탈중합 억제 (M기 정지), 말초신경병증 주의"}, {"generic": "시스플라틴 (cisplatin) / 옥살리플라틴", "brand": "시스플라틴", "role": "백금 착물 알킬화제, 신독성(수액 요법 필수) 및 극심한 구토 유발"}, {"generic": "펨브롤리주맙 (pembrolizumab)", "brand": "키트루다", "role": "항-PD-1 면역관문억제제 항체, T세포 면역 활성화, 다양한 고형암 치료"}], "moa": "세포주기 비특이성(CCNS) 약물인 알킬화제와 백금 화합물은 DNA의 구아닌 N7 위치에 공유결합을 형성하여 DNA 복제를 차단합니다. 세포주기 특이성(CCS) 약물인 항대사제(S기)는 엽산 대사(DHFR)나 퓨린/피리미딘 합성을 억제하여 세포를 사멸시킵니다. 빈카 알칼로이드는 미세관 중합을 억제하고, 탁산계는 미세관 탈중합을 억제하여 유사분열(M기)을 차단합니다. 면역관문억제제는 암세포의 PD-L1이 T세포의 PD-1에 결합하여 면역반응을 회피하는 경로를 차단하여 환자 본인의 면역 T세포가 암을 공격하도록 합니다.", "indications": ["유방암, 폐암, 결장직장암, 위암 등 주요 고형암", "백혈병, 악성 림프종, 다발골수종 등 혈액암", "수술 전후 보조 화학요법 (adjuvant / neoadjuvant chemotherapy)", "전이성 암의 고식적 항암화학요법"], "adrs": ["골수 억제 (bone marrow suppression: 호중구감소증, 혈소판감소증, 빈혈)", "극심한 오심 및 구토 (항구토제 5-HT3 길항제 온단세트론 병용)", "독소루비신: 비가역적 울혈성 심부전 (누적 용량 제한, 덱스라족산 심장보호)", "시클로포스파미드: 아크롤레인(acrolein) 대사산물에 의한 출혈성 방광염 (Mesna 병용)", "시스플라틴: 중증 신독성 및 이독성", "빈크리스틴/파클리탁셀: 말초신경병증 (손발 저림)"], "ddis_and_cautions": ["메토트렉세이트(MTX) 고용량 투여 시 정상 세포의 엽산 결핍 치사를 막기 위해 환원형 엽산인 류코보린 (leucovorin, folinic acid) 구조 요법 (leucovorin rescue)을 정해진 시간에 반드시 시행해야 함", "알로푸리놀(통풍약)은 6-MP(항대사제)의 대사효소인 잔틴 산화효소를 억제하므로, 병용 시 6-MP 용량을 25~33% 수준으로 대폭 감량해야 함", "항암제 주관 구토 예방 3제 병용: 5-HT3 길항제(온단세트론) + NK1 길항제(아프레피탄트) + 덱사메타손"], "pharmacist_tips": "💡 세포독성 항암제를 투여받는 환자에게는 면역세포(호중구) 수치가 투여 후 1~2주 사이에 가장 낮아지는 '최저점(Nadir)' 시기에 38도 이상의 열이 나면 패혈증 위험이 있으므로 해열제를 임의로 먹지 말고 즉시 응급실로 가도록 교육합니다.", "exam_points": "항암제별 독특한 장기 독성 매칭: 1) 독소루비신(Doxorubicin) - 심장독성(Cardiotoxicity), 2) 블레오마이신(Bleomycin) - 폐섬유화증(Pulmonary fibrosis), 3) 시스플라틴(Cisplatin) - 신독성(Nephrotoxicity), 4) 시클로포스파미드(Cyclophosphamide) - 출혈성 방광염(Acrolein/Mesna)."}, {"id": "antiseizure_drugs", "num": 18, "category": "중추신경계 (CNS)", "name": "항뇌전증약 (antiseizure drugs) 및 항경련제 (anticonvulsants)", "sub_category": "뇌전증 및 발작 치료제", "short_desc": "전압개폐성 나트륨 통로 차단, GABA 억제성 신호 강화, T형 칼슘 통로 차단을 통한 발작 억제제", "drugs": [{"generic": "페니토인 (phenytoin)", "brand": "페니토인정", "role": "전압작동성 Na+ 통로 차단(불활성화 지속), 0차 대사동역학, 잇몸 증식(치은비대) 주의"}, {"generic": "카르바마제핀 (carbamazepine)", "brand": "테그레톨", "role": "Na+ 통로 차단, 삼차신경통(trigeminal neuralgia) 1차 선택, 자가대사유도(autoinduction)"}, {"generic": "발프로산 (valproate / valproic acid)", "brand": "데파킨", "role": "광범위 항경련제(Na+/Ca2+ 차단 + GABA 증가), 양극성 장애, 최기형성(신경관결손) 주의"}, {"generic": "라모트리진 (lamotrigine)", "brand": "라믹탈", "role": "Na+ 통로 억제 및 글루타메이트 방출 억제, 스티븐스-존슨 증후군(SJS) 피부발진 주의"}, {"generic": "에토석시미드 (ethosuximide)", "brand": "자론틴", "role": "시상 신경세포 T형 Ca2+ 통로 차단, 소아 소발작(absence seizure) 1차 선택약"}], "moa": "페니토인과 카르바마제핀은 전압개폐성 Na+ 통로의 불활성화 상태를 연장하여 고빈도 반복 발화를 차단합니다. 에토석시미드는 시상 (thalamus) 신경세포의 T형 칼슘 통로 (T-type Ca2+ channel)를 선택적으로 차단하여 3Hz 극서파 방전을 억제합니다. 발프로산은 다중 기전(Na+ 차단, T형 Ca2+ 차단, GABA 트랜스아미나아제 억제)을 통해 광범위 발작을 억제합니다.", "indications": ["전신 강직간대발작 (tonic-clonic seizure)", "부분발작 (focal seizure)", "소발작 / 실신발작 (absence seizure, 에토석시미드 및 발프로산)", "삼차신경통 (카르바마제핀)", "양극성 장애 (bipolar disorder) 기분안정제"], "adrs": ["페니토인: 잇몸 과다형성 / 치은비대 (gingival hyperplasia), 다모증, 안구진탕 (nystagmus), 거대적혈모구빈혈 (엽산 결핍)", "카르바마제핀: 골수억제 (무과립구증, 재생불량성 빈혈), 저나트륨혈증, SJS", "발프로산: 간독성, 췌장염, 체중 증가, 최기형성 (신경관 결손 spina bifida)"], "ddis_and_cautions": ["페니토인은 치료 농도 범위(10~20 μg/mL)에서 효소 포화로 인해 용량 의존적 1차 속도론에서 0차 대사 속도론 (zero-order kinetics)으로 전환되므로 미세한 증량에도 혈중농도가 급상승하여 TDM 모니터링 필수", "임산부에게 발프로산은 태아 기형(척추이분증) 위험이 가장 높으므로 가임기 여성 사용 시 특별 주의", "카르바마제핀은 투여 수주 후 자신의 간 대사효소(CYP3A4)를 스스로 유도하는 자가대사유도(autoinduction)로 반감기가 단축됨"], "pharmacist_tips": "💡 페니토인을 복용하는 환자에게는 잇몸이 붓고 자라나는 부작용(치은비대)을 예방하기 위해 구강 위생(올바른 칫솔질과 정기 스케일링)을 철저히 유지하도록 강조합니다. 라모트리진 복용 초기 피부 발진이나 수포가 나타나면 중증 피부 반응(SJS) 위험이 있으므로 즉시 복용을 중단하고 병원을 방문하도록 지도합니다.", "exam_points": "발작 유형별 1차 선택약: 소발작(Absence) → 에토석시미드(Ethosuximide) 또는 발프로산. 삼차신경통 → 카르바마제핀(Carbamazepine). 간질지속상태 응급 1차 치료 → 로라제팜 정맥주사 후 페니토인 정주."}, {"id": "gout_and_nsaids", "num": 19, "category": "중추신경계 및 염증", "name": "통풍 치료약 (drugs for gout) 및 비스테로이드성 소염진통제 (NSAIDs)", "sub_category": "요산 대사 및 관절염 약리학", "short_desc": "급성 통풍 발작의 염증을 신속히 가라앉히는 콜키신/NSAIDs와, 만성기 혈중 요산을 낮추는 알로푸리놀/페북소스타트", "drugs": [{"generic": "콜키신 (colchicine)", "brand": "콜킨", "role": "튜불린 결합 미세관 중합 저해, 호중구 이동 억제, 급성 통풍 발작 1차 조기 투약"}, {"generic": "알로푸리놀 (allopurinol)", "brand": "자이로릭", "role": "잔틴 산화효소 (XO) 퓨린 유사체 억제제, 만성 통풍 요산 생성 억제, HLA-B*5801 유전자 과민반응"}, {"generic": "페북소스타트 (febuxostat)", "brand": "페브릭", "role": "비퓨린계 선택적 XO 억제제, 알로푸리놀 과민반응 환자 및 신장애 환자 대체"}, {"generic": "벤즈브로마론 (benzbromarone)", "brand": "유리논", "role": "요산배설 촉진제 (uricosuric), 신장 URAT1 억제, 요로결석 및 간독성 주의"}, {"generic": "셀레콕시브 (celecoxib)", "brand": "쎄레브렉스", "role": "선택적 COX-2 억제제, 위장관 궤양 출혈 부작용 경감, 심혈관 혈전 주의"}], "moa": "급성 발작 시 콜키신은 호중구의 미세관 (microtubule) 형성을 차단하여 요산염 결정 부위로의 백혈구 침윤과 류코트리엔 B4 방출을 억제합니다. 만성 치료제인 알로푸리놀과 페북소스타트는 하이포잔틴에서 잔틴, 잔틴에서 요산 (uric acid)을 생성하는 잔틴 산화효소 (xanthine oxidase)를 억제하여 체내 요산 생성을 근본적으로 차단합니다.", "indications": ["급성 통풍성 관절염 발작 (acute gouty arthritis)", "만성 통풍 결절 및 고요산혈증 (hyperuricemia)의 지속적 관리", "항암화학요법 시 종양용해 증후군 (tumor lysis syndrome) 고요산혈증 예방", "골관절염 및 류마티스 관절염 통증"], "adrs": ["콜키신: 오심, 설사, 복통 (치료 용량 근처에서 흔함), 골수억제", "알로푸리놀: 중증 피부 유해반응 (SCAR: 스티븐스-존슨 증후군 SJS / 독성표피괴사용해 TEN), 간독성", "NSAIDs: 위장관 궤양 및 출혈, 신장 혈류 감소에 의한 급성 신손상 및 부종, 혈압 상승"], "ddis_and_cautions": ["급성 통풍 발작 중에는 알로푸리놀 등 요산저하제를 새로 시작하거나 용량을 급격히 변경하지 않음 (혈중 요산 농도의 급변동이 관절 내 요산염 결정을 탈락시켜 발작을 오히려 연장·악화시킴)", "알로푸리놀은 면역억제제 아자티오프린(azathioprine) 및 6-머캅토퓨린(6-MP)의 대사를 차단하므로, 병용 시 6-MP 용량을 1/3~1/4로 대폭 감량해야 함", "한국인 환자에게 알로푸리놀 처방 전 HLA-B*5801 유전자 검사를 권장 (양성 시 중증 피부괴사 위험)"], "pharmacist_tips": "💡 급성 통풍 발작이 시작되면 콜키신을 첫 증상 발생 12~24시간 이내에 즉시 복용(초회 1.2mg 복용 후 1시간 뒤 0.6mg)해야 가장 효과적이며, 설사가 시작되면 복용을 중단하도록 지도합니다. 만성 요산저하제(페브릭, 자이로릭)는 증상이 없더라도 매일 꾸준히 복용해야 통풍 재발과 관절 변형, 신장 손상을 막을 수 있습니다.", "exam_points": "급성 통풍 치료제(콜키신, NSAIDs 인도메타신/나프록센, 관절내 스테로이드)와 만성 요산 저하제(알로푸리놀, 페북소스타트, 벤즈브로마론)의 엄격한 역할 구분이 국시 1순위입니다."}, {"id": "osteoporosis_and_bone", "num": 20, "category": "내분비 및 대사 (Endocrine)", "name": "골다공증 및 뼈무기질 항상성 조절약 (drugs for osteoporosis & bone mineral homeostasis)", "sub_category": "칼슘 대사 및 골흡수 억제제", "short_desc": "파골세포를 억제하여 골밀도를 높이는 비스포스포네이트와 데노수맙, 조골세포를 자극하는 부갑상샘호르몬 유도체", "drugs": [{"generic": "알렌드로네이트 (alendronate) / 이반드로네이트", "brand": "포사맥스 / 본비바", "role": "질소 함유 비스포스포네이트 (bisphosphonate), 파골세포 FPPS 억제, 골다공증 1차"}, {"generic": "데노수맙 (denosumab)", "brand": "프롤리아", "role": "항-RANKL 인간 단일클론항체, 파골세포 분화/활성 차단, 6개월 1회 피하주사"}, {"generic": "랄록시펜 (raloxifene) / 바제독시펜", "brand": "에비스타 / 비비안트", "role": "선택적 에스트로겐 수용체 조절제 (SERM), 뼈에는 에스트로겐 작용(골흡수 억제), 유방/자궁에는 항에스트로겐(암 유발 없음)"}, {"generic": "테리파라타이드 (teriparatide)", "brand": "포스테오", "role": "재조합 부갑상샘호르몬 (PTH 1-34), 간헐적 투여 시 조골세포 자극 골형성 촉진"}], "moa": "비스포스포네이트는 뼈의 하이드록시아파타이트 (hydroxyapatite)에 강력히 결합하여 파골세포 (osteoclast)의 파네실 피로인산 합성효소(FPPS)를 억제하고 세포자멸사를 유도합니다. 데노수맙은 파골세포 표면의 RANK에 결합하는 RANKL을 중화시켜 파골세포의 분화, 생존 및 골흡수를 차단합니다. 테리파라타이드는 1일 1회 간헐적 피하주사 시 골흡수보다 조골세포 (osteoblast) 활성을 우선 자극하여 새로운 골기질을 형성합니다.", "indications": ["폐경 후 여성 및 남성의 골다공증 (osteoporosis)", "당질코르티코이드(스테로이드) 유발성 골다공증 예방 및 치료", "골절 고위험군 골다공증 환자의 골절 예방", "뼈 파제트병 (Paget's disease of bone)"], "adrs": ["비스포스포네이트: 식도염 및 식도 궤양 (esophageal ulceration), 턱뼈 괴사 (osteonecrosis of the jaw, ONJ, 발치 등 침습적 치과치료 시), 비전형 대퇴골 골절 (AFF, 장기 복용 시)", "데노수맙: 저칼슘혈증, 중단 시 반동성 다발성 척추 골절 (rebound fractures)", "랄록시펜: 안면홍조, 정맥 혈전색전증 (VTE) 위험"], "ddis_and_cautions": ["경구 비스포스포네이트는 생체이용률이 1% 미만으로 극히 낮고 음식물 및 칼슘과 착물을 형성하므로, '아침 기상 직후 공복에 충분한 맹물(200mL 이상)'과 함께 복용해야 함", "식도 점막 손상 및 역류를 막기 위해 복용 후 최소 30분(이반드로네이트는 60분) 동안 눕지 않고 상체를 세우고 있어야 함", "임플란트나 발치 등 침습적 치과 치료 전에는 턱뼈괴사 예방을 위해 의사와 상의하여 약물 휴지기 고려"], "pharmacist_tips": "💡 포사맥스 등 경구 골다공증약을 복용할 때는 우유, 오렌지주스, 커피, 차, 영양제와 절대 함께 먹지 말고 순수한 맹물로만 삼켜야 하며, 복용 후 30분간 절대 눕지 않도록 철저히 복약지도합니다. 데노수맙(프롤리아)은 6개월 주기를 놓치면 골밀도가 급락하므로 다음 접종일을 캘린더에 반드시 기록하도록 당부합니다.", "exam_points": "지속적 PTH 분비(부갑상선 기능 항진증)는 골흡수를 촉진하여 골소실을 일으키지만, 테리파라타이드를 '간헐적(Intermittent)'으로 투여하면 조골세포를 선택적으로 자극하여 '골형성 촉진'을 일으킨다는 이중 작용이 빈출 출제점입니다."}, {"id": "antiviral_and_antifungal", "num": 21, "category": "항감염증 (Antimicrobials)", "name": "항바이러스약 (antiviral drugs) 및 항진균약 (antifungals)", "sub_category": "바이러스 및 진균 감염증", "short_desc": "DNA 중합효소를 억제하는 아시클로버, 인플루엔자 뉴라미니다아제 억제제, 에르고스테롤 합성을 막는 아졸계 항진균제", "drugs": [{"generic": "아시클로버 (acyclovir) / 발라시클로버", "brand": "조비락스 / 발트렉스", "role": "구아노신 유사체, 바이러스 티미딘 키나아제(TK)로 활성화, 단순포진/대상포진 치료"}, {"generic": "오셀타미비르 (oseltamivir)", "brand": "타미플루", "role": "인플루엔자 A/B 뉴라미니다아제(NA) 억제제, 증상 발현 48시간 이내 복용"}, {"generic": "플루코나졸 (fluconazole) / 이트라코나졸", "brand": "디푸루칸 / 스포라녹스", "role": "트리아졸계 항진균제, 진균 세포막 14α-demethylase 억제, 칸디다증 1차"}, {"generic": "암포테리신 B (amphotericin B)", "brand": "암비솜(리포좀)", "role": "폴리엔계, 진균 세포막 에르고스테롤 결합 구멍 형성, 중증 전신 진균증, 신독성 주의"}, {"generic": "카스포펀진 (caspofungin)", "brand": "칸시다스", "role": "에키노칸딘계, 세포벽 β-(1,3)-D-glucan 합성 억제, 침습성 아스페르길루스증"}], "moa": "아시클로버는 바이러스 특이적 티미딘 인산화효소 (viral thymidine kinase)에 의해 초기 1인산화된 후, 숙주 효소에 의해 3인산화되어 바이러스 DNA 중합효소 (DNA polymerase)를 경쟁적으로 억제하고 사슬을 종결합니다. 오셀타미비르는 인플루엔자 바이러스 표면의 뉴라미니다아제 (neuraminidase)를 억제하여 증식된 바이러스 입자가 숙주 세포 표면에서 떨어져 나와 인접 세포로 퍼지는 것을 차단합니다. 아졸계 항진균제는 진균 세포막의 필수 성분인 에르고스테롤 (ergosterol) 생합성을 차단합니다.", "indications": ["단순포진 바이러스 (HSV-1, HSV-2) 및 대상포진 (herpes zoster, VZV)", "인플루엔자 A 및 B 바이러스 감염증 (독감 초기 치료 및 예방)", "질 칸디다증, 구강 칸디다증 및 크립토코쿠스 수막염", "중증 전신 침습성 진균 감염증 (침습성 칸디다증, 아스페르길루스증)"], "adrs": ["아시클로버: 정맥 투여 시 신장 세뇨관 결정 침착(신독성, 충분한 수액 공급 필요)", "오셀타미비르: 구역, 구토, 청소년 환자의 일시적 신경정신과적 이상행동(섬망, 환각)", "플루코나졸: 간독성, CYP 효소 억제로 인한 약물 상호작용", "암포테리신 B: 심한 신독성 (nephrotoxicity), 오한 및 발열 (Shake and bake), 저칼륨혈증"], "ddis_and_cautions": ["아시클로버는 바이러스 감염 세포에서만 선택적으로 활성화되므로 숙주 정상 세포에 대한 독성이 매우 낮음", "타미플루(오셀타미비르)는 바이러스 증식이 활발한 '초기 48시간 이내'에 복용을 시작해야 유의미한 유열 기간 단축 효과를 얻을 수 있음", "아졸계 항진균제(이트라코나졸, 보리코나졸)는 간 대사효소 CYP3A4의 강력한 억제제이므로 스타틴, 와파린, 면역억제제 농도를 급상승시킴"], "pharmacist_tips": "💡 대상포진 환자가 발라시클로버를 복용할 때는 피부 발진 후 신경통 후유증을 줄이기 위해 조기에 1일 3회 시간을 맞추어 끝까지 복용하도록 지도합니다. 타미플루를 복용하는 소아·청소년 환자의 경우 복용 초기 1~2일간 혼자 두지 말고 보호자가 이상행동 유무를 주의 깊게 관찰하도록 안내합니다.", "exam_points": "아시클로버(Acyclovir)가 바이러스 감염 세포에만 '선택적 독성'을 갖는 이유: 첫 번째 인산화 단계가 오직 헤르페스 바이러스가 만드는 특이적 티미딘 키나아제(viral TK)에 의해서만 일어나기 때문이라는 분자약리학적 원리가 단골 출제됩니다."}];
+  </script>
+
+  <!-- ================= APPLICATION LOGIC SCRIPT ================= -->
+  <script>
+    let currentCategory = 'all';
+    let currentSearchTerm = '';
+    let activeModalClass = null;
+    let bookmarks = [];
+    let classNotes = {};
+    let currentQuizIndex = 0;
+    let quizScore = 0;
+    let quizAnswered = {};
+
+    const CATEGORIES = [
+      { id: '자율신경계 (ANS)', name: '자율신경계 (ANS)', icon: 'fa-brain', color: 'text-indigo-600', count: 0 },
+      { id: '심혈관계 (CVS)', name: '심혈관계 (CVS)', icon: 'fa-heart-pulse', color: 'text-rose-600', count: 0 },
+      { id: '혈액 및 항혈전 (Hematology)', name: '혈액 및 항혈전 (Hematology)', icon: 'fa-droplet', color: 'text-red-500', count: 0 },
+      { id: '호흡기계 (Respiratory)', name: '호흡기계 (Respiratory)', icon: 'fa-lungs', color: 'text-sky-600', count: 0 },
+      { id: '소화기계 (Gastrointestinal)', name: '소화기계 (GI)', icon: 'fa-utensils', color: 'text-amber-600', count: 0 },
+      { id: '내분비 및 대사 (Endocrine)', name: '내분비 및 대사 (Endocrine)', icon: 'fa-dna', color: 'text-emerald-600', count: 0 },
+      { id: '중추신경계 (CNS)', name: '중추신경계 (CNS)', icon: 'fa-bolt', color: 'text-purple-600', count: 0 },
+      { id: '중추신경계 및 염증', name: '통풍 및 소염진통제', icon: 'fa-bone', color: 'text-orange-600', count: 0 },
+      { id: '항감염증 (Antimicrobials)', name: '항감염증 (Antimicrobials)', icon: 'fa-shield-virus', color: 'text-teal-600', count: 0 },
+      { id: '항암 및 면역 (Cancer & Immuno)', name: '항암 및 면역 (Cancer & Immuno)', icon: 'fa-bacterium', color: 'text-fuchsia-600', count: 0 }
+    ];
+
+    const PHARMA_QUIZ = [
+      {
+        id: 1,
+        title: "케이스 1: 당뇨병 환자의 심부전 및 신장 보호 약제",
+        question: "62세 제2형 당뇨병 환자로 미세알부민뇨(단백뇨)와 함께 심부전(HFrEF) 진단을 받았습니다. 신장 근위세뇨관에서 포도당 재흡수를 차단하여 요당 배출을 촉진하고, 혈당 강하뿐 아니라 심부전 입원율과 신장 질환 진행을 획기적으로 낮추는 1차 권장 약제군은?",
+        options: [
+          "설포닐유레아 (sulfonylurea)",
+          "SGLT2 억제제 (SGLT2 inhibitor)",
+          "티아졸리딘디온 (thiazolidinedione, TZD)",
+          "알파-글루코시다아제 억제제"
+        ],
+        answer: 1,
+        explanation: "SGLT2 억제제(엠파글리플로진, 다파글리플로진)는 신장 근위세뇨관의 SGLT2 수송체를 억제하여 포도당과 나트륨 배출을 유도합니다. 사구체 수입세동맥을 수축시켜 사구체 내 고혈압을 낮춤으로써 신장을 보호하고, 당뇨 유무와 관계없이 심부전 환자의 사망률과 입원율을 유의하게 감소시킵니다."
+      },
+      {
+        id: 2,
+        title: "케이스 2: 고혈압약 복용 후 지속되는 마른기침",
+        question: "55세 고혈압 환자가 3주 전부터 혈압약을 복용하기 시작한 이후, 가래가 전혀 나오지 않는 발작적 마른기침(dry cough)이 멎지 않아 내방했습니다. 이 환자의 혈압약으로 가장 유력한 성분과 교체할 적절한 대안은?",
+        options: [
+          "암로디핀(CCB) 복용 중 → 딜티아젬으로 교체",
+          "히드로클로로티아지드(이뇨제) 복용 중 → 푸로세미드로 교체",
+          "에날라프릴(ACEI) 복용 중 → 로사르탄(ARB)으로 교체",
+          "아테놀롤(베타차단제) 복용 중 → 프로프라놀롤로 교체"
+        ],
+        answer: 2,
+        explanation: "ACE 억제제(에날라프릴, 라미프릴 등)는 안지오텐신 전환효소를 억제하면서 동시에 브라디키닌(bradykinin)과 P물질의 분해를 막아 기도 내 축적을 초래하여 약 10~20%의 환자에게 마른기침을 유발합니다. 브라디키닌 대사에 영향을 주지 않는 AT1 수용체 차단제(ARB, 로사르탄 등)로 변경해야 합니다."
+      },
+      {
+        id: 3,
+        title: "케이스 3: 클로피도그렐과 PPI 병용 시 약물 상호작용",
+        question: "관상동맥 스텐트 시술을 받은 68세 환자가 아스피린과 함께 클로피도그렐(clopidogrel)을 복용 중입니다. 속쓰림 증상으로 양성자 펌프 억제제(PPI)를 추가 처방하려 할 때, 간 CYP2C19 효소 경쟁으로 인해 클로피도그렐의 항혈소판 활성화를 저해하므로 병용을 피해야 하는 PPI는?",
+        options: [
+          "판토프라졸 (pantoprazole)",
+          "라베프라졸 (rabeprazole)",
+          "오메프라졸 (omeprazole)",
+          "테고프라잔 (tegoprazan)"
+        ],
+        answer: 2,
+        explanation: "클로피도그렐은 간의 CYP2C19에 의해 활성 대사체로 전환되어야 작용하는 전구약물(prodrug)입니다. 오메프라졸은 강력한 CYP2C19 억제제이므로 클로피도그렐의 활성화를 막아 스텐트 혈전증 위험을 높입니다. CYP2C19 영향이 적은 판토프라졸이나 라베프라졸을 선택해야 합니다."
+      },
+      {
+        id: 4,
+        title: "케이스 4: 1차 항결핵제 4제 요법(HRZE)의 시그니처 부작용 매칭",
+        question: "결핵 확진을 받고 1차 표준 4제 복합요법(이소니아지드, 리팜핀, 피라진아마이드, 에탐부톨)을 시작한 환자가 복약지도 중 질문을 했습니다. 부작용 설명으로 올바르지 않은 것은?",
+        options: [
+          "이소니아지드(INH)는 말초신경염을 유발하므로 비타민 B6(피리독신)를 함께 복용한다.",
+          "리팜핀(RIF) 복용 시 소변, 땀, 눈물이 붉은 오렌지색으로 변할 수 있으나 무해하다.",
+          "에탐부톨(EMB) 복용 중 시력 저하나 적록색 구분이 어려워지면 즉시 안과 검사를 받아야 한다.",
+          "피라진아마이드(PZA)는 부작용이 거의 없어 간기능 검사가 불필요하다."
+        ],
+        answer: 3,
+        explanation: "피라진아마이드(PZA)는 1차 결핵약 중 간독성(hepatotoxicity) 빈도가 가장 높은 약물 중 하나이며, 요산 배설을 억제하여 고요산혈증 및 통풍 발작을 흔히 유발하므로 주기적인 간기능 검사와 요산 검사가 필수적입니다."
+      },
+      {
+        id: 5,
+        title: "케이스 5: 알츠하이머 치매 인지기능 개선제",
+        question: "78세 알츠하이머병 환자의 기억력 감퇴를 완화하기 위해 중추 선택적 가역적 아세틸콜린에스테라아제 억제제(AChE inhibitor)를 처방하고자 합니다. 반감기가 약 70시간으로 길어 1일 1회 취침 전 복용하며 간독성이 적은 1차 표준 약물은?",
+        options: [
+          "베타네콜 (bethanechol)",
+          "도네페질 (donepezil)",
+          "타크린 (tacrine)",
+          "에드로포늄 (edrophonium)"
+        ],
+        answer: 1,
+        explanation: "도네페질(donepezil, 아리셉트)은 중추 신경계에 선택적으로 작용하는 가역적 아세틸콜린에스테라아제 억제제로, 긴 반감기를 가져 1일 1회 복용이 가능하고 타크린과 같은 간독성이 없어 알츠하이머 치매의 1차 표준 치료제로 널리 쓰입니다."
+      },
+      {
+        id: 6,
+        title: "케이스 6: 오피오이드 과량 투여의 3대 징후와 특이 역전제",
+        question: "응급실에 실려온 20대 환자가 의식 불명(혼수), 바늘구멍 크기의 심한 축동(pinpoint pupil), 분당 6회의 심각한 서호흡을 보이고 있습니다. 뮤(μ) 오피오이드 과량투여(마약성 진통제 중독)로 판단될 때 즉시 정맥주사해야 할 특이 길항제는?",
+        options: [
+          "플루마제닐 (flumazenil)",
+          "날록손 (naloxone)",
+          "프랄리독심 (pralidoxime)",
+          "프로타민 (protamine)"
+        ],
+        answer: 1,
+        explanation: "오피오이드 중독 3대 징후는 혼수(coma), 축동(miosis), 호흡억제(respiratory depression)입니다. 순수 오피오이드 수용체 길항제인 날록손(naloxone)을 즉시 정맥 투여하여 호흡 억제를 신속히 역전시켜야 합니다. 플루마제닐은 BZD 해독제, 프로타민은 헤파린 해독제입니다."
+      },
+      {
+        id: 7,
+        title: "케이스 7: 골다공증 치료제 비스포스포네이트 복약지도",
+        question: "65세 폐경 후 여성 환자에게 알렌드로네이트(alendronate) 주 1회 제형이 처방되었습니다. 이 약물의 복약지도로 가장 적절한 것은?",
+        options: [
+          "식사 도중 또는 식후 즉시 우유 한 잔과 함께 복용한다.",
+          "저녁 취침 직전에 충분한 물과 함께 복용하고 바로 잠자리에 든다.",
+          "아침 기상 직후 공복에 맹물(200mL 이상)과 함께 복용하고 최소 30분간 눕지 않는다.",
+          "흡수를 높이기 위해 칼슘 영양제와 동시에 씹어서 복용한다."
+        ],
+        answer: 2,
+        explanation: "경구 비스포스포네이트는 음식물, 칼슘, 유제품과 착화합물을 형성해 흡수율이 1% 미만으로 떨어지므로 아침 공복에 순수한 맹물로만 복용해야 합니다. 또한 식도 정체 시 심각한 식도 궤양을 유발하므로 복용 후 최소 30분간 눕지 않고 상체를 세워야 합니다."
+      },
+      {
+        id: 8,
+        title: "케이스 8: 급성 통풍 발작과 만성 요산저하 치료 원칙",
+        question: "엄지발가락 관절이 붉게 붓고 극심한 통증을 호소하는 급성 통풍 관절염 발작 환자가 내방했습니다. 다음 중 급성 통풍 발작의 치료 원칙으로 옳은 것은?",
+        options: [
+          "급성 발작 즉시 알로푸리놀(allopurinol)을 최고 용량으로 증량 투여한다.",
+          "발작 초기 24시간 이내에 콜키신(colchicine) 또는 소염진통제(NSAIDs)를 조기 투여한다.",
+          "요산 배설 촉진제인 벤즈브로마론을 발작 직후 1차 약제로 단독 사용한다.",
+          "급성 통풍 발작 중에는 수분 섭취를 엄격히 제한해야 한다."
+        ],
+        answer: 1,
+        explanation: "급성 통풍 발작 시에는 염증을 신속히 가라앉히기 위해 콜키신이나 고용량 NSAIDs를 즉시 투여해야 합니다. 알로푸리놀이나 요산배설촉진제는 혈중 요산 농도를 급격히 변동시켜 관절 내 요산 결정을 탈락시켜 발작을 악화시키므로 발작이 완전히 가라앉은 후(2~4주 뒤) 시작해야 합니다."
+      },
+      {
+        id: 9,
+        title: "케이스 9: 천식 환자에게 금기인 고혈압 약제",
+        question: "48세 남성으로 오랜 기관지 천식 병력이 있는 환자가 최근 2단계 고혈압으로 진단받았습니다. 이 환자에게 기관지 평활근 수축을 유발하여 치명적인 천식 발작을 일으킬 수 있어 절대 투여해서는 안 되는 약제는?",
+        options: [
+          "암로디핀 (CCB)",
+          "로사르탄 (ARB)",
+          "프로프라놀롤 (비선택적 베타차단제)",
+          "히드로클로로티아지드 (이뇨제)"
+        ],
+        answer: 2,
+        explanation: "프로프라놀롤(propranolol)은 비선택적 베타차단제로, 심장의 β1뿐 아니라 기관지 평활근의 β2 수용체까지 차단합니다. β2 수용체 차단은 평활근 수축을 유도하여 천식 환자에게 치명적인 기관지 연축 발작을 유발하므로 금기입니다."
+      },
+      {
+        id: 10,
+        title: "케이스 10: 헤파린 vs 와파린 임산부 안전성",
+        question: "임신 12주 차 산모가 심부정맥 혈전증(DVT)으로 진단받았습니다. 태반을 통과하여 태아의 뼈 기형(연골형성부전증)과 중추신경계 기형, 출혈을 유발하여 임신 중 절대 금기(Category X)인 항응고제와 안전하게 대체할 수 있는 약제는?",
+        options: [
+          "금기: 헤파린 / 대체약: 와파린",
+          "금기: 와파린 / 대체약: 저분자량 헤파린 (LMWH, 에녹사파린)",
+          "금기: 리바록사반 / 대체약: 아스피린 고용량",
+          "금기: 다비가트란 / 대체약: 클로피도그렐"
+        ],
+        answer: 1,
+        explanation: "와파린은 저분자 지용성 화합물로 태반을 쉽게 통과하여 태아 기형(Warfarin embryopathy)과 사산을 유발하므로 임신 중 금기입니다. 반면 헤파린 및 저분자량 헤파린(LMWH)은 분자량이 크고 음전하를 띠어 태반을 통과하지 못하므로 임신 중 혈전증 치료의 1차 선택약입니다."
+      }
+    ];
+
+    document.addEventListener('DOMContentLoaded', () => {
+      calculateCategoryCounts();
+      renderCategoryNav();
+      renderCategoryPillBar();
+      setupPillBarInteractions();
+      renderClassesGrid(PHARMA_DATABASE);
+      initCompareDropdowns();
+      renderQuizQuestion();
+      loadSavedData();
+    });
+
+    function loadSavedData() {
+      try {
+        const b = localStorage.getItem('pharma_bookmarks');
+        if (b) bookmarks = JSON.parse(b);
+        const n = localStorage.getItem('pharma_notes');
+        if (n) classNotes = JSON.parse(n);
+        updateBookmarkBadge();
+      } catch (e) {}
+    }
+
+    function saveBookmarks() {
+      try {
+        localStorage.setItem('pharma_bookmarks', JSON.stringify(bookmarks));
+        updateBookmarkBadge();
+      } catch (e) {}
+    }
+
+    function saveNotes() {
+      try {
+        localStorage.setItem('pharma_notes', JSON.stringify(classNotes));
+      } catch (e) {}
+    }
+
+    function updateBookmarkBadge() {
+      const badge = document.getElementById('bookmarkBadge');
+      if (badge) {
+        if (bookmarks.length > 0) {
+          badge.textContent = bookmarks.length;
+          badge.classList.remove('hidden');
+        } else {
+          badge.classList.add('hidden');
+        }
+      }
+    }
+
+    function calculateCategoryCounts() {
+      CATEGORIES.forEach(c => {
+        c.count = PHARMA_DATABASE.filter(item => item.category === c.id).length;
+      });
+    }
+
+    function renderCategoryNav() {
+      const container = document.getElementById('categoryNavList');
+      if (!container) return;
+      container.innerHTML = CATEGORIES.map(c => `
+        <button 
+          onclick="setCategoryFilter('${c.id}')" 
+          id="cat-btn-${c.id.replace(/[\/\·\s\(\)]/g, '_')}"
+          class="w-full px-2.5 py-1.5 rounded-xl text-left flex items-center justify-between text-slate-700 hover:bg-slate-100 transition font-medium group"
+        >
+          <div class="flex items-center gap-2 truncate">
+            <span class="w-5 text-center ${c.color} group-hover:scale-110 transition-transform">
+              <i class="fa-solid ${c.icon} text-xs"></i>
+            </span>
+            <span class="truncate">${c.name}</span>
+          </div>
+          <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-500 font-bold shrink-0">${c.count}</span>
+        </button>
+      `).join('');
+    }
+
+        // Pill Bar Horizontal Scroll & Drag Helpers
+    function scrollPillBar(offset) {
+      const pillBar = document.getElementById('categoryPillBar');
+      if (pillBar) {
+        pillBar.scrollBy({ left: offset, behavior: 'smooth' });
+      }
+    }
+
+    let isPillBarWrapped = false;
+    function togglePillBarWrap() {
+      const pillBar = document.getElementById('categoryPillBar');
+      const toggleText = document.getElementById('pillBarWrapToggleText');
+      const leftBtn = document.getElementById('pillScrollLeftBtn');
+      const rightBtn = document.getElementById('pillScrollRightBtn');
+      if (!pillBar) return;
+
+      isPillBarWrapped = !isPillBarWrapped;
+      if (isPillBarWrapped) {
+        pillBar.classList.remove('overflow-x-auto', 'flex-nowrap');
+        pillBar.classList.add('flex-wrap');
+        if (toggleText) toggleText.textContent = '한 줄로 접기';
+        if (leftBtn) leftBtn.classList.add('hidden');
+        if (rightBtn) rightBtn.classList.add('hidden');
+      } else {
+        pillBar.classList.add('overflow-x-auto');
+        pillBar.classList.remove('flex-wrap');
+        if (toggleText) toggleText.textContent = '전체 펼치기';
+        if (leftBtn) leftBtn.classList.remove('hidden');
+        if (rightBtn) rightBtn.classList.remove('hidden');
+      }
+    }
+
+    // Attach mouse wheel horizontal scroll and drag-to-scroll to categoryPillBar
+    function setupPillBarInteractions() {
+      const pillBar = document.getElementById('categoryPillBar');
+      if (!pillBar) return;
+
+      // Mouse wheel to horizontal scroll
+      pillBar.addEventListener('wheel', (e) => {
+        if (!isPillBarWrapped && e.deltaY !== 0) {
+          e.preventDefault();
+          pillBar.scrollLeft += e.deltaY * 1.2;
+        }
+      }, { passive: false });
+
+      // Drag to scroll
+      let isDown = false;
+      let startX;
+      let scrollLeft;
+
+      pillBar.addEventListener('mousedown', (e) => {
+        if (isPillBarWrapped) return;
+        isDown = true;
+        pillBar.classList.add('cursor-grabbing');
+        startX = e.pageX - pillBar.offsetLeft;
+        scrollLeft = pillBar.scrollLeft;
+      });
+
+      window.addEventListener('mouseup', () => {
+        if (isDown) {
+          isDown = false;
+          if (pillBar) pillBar.classList.remove('cursor-grabbing');
+        }
+      });
+
+      pillBar.addEventListener('mousemove', (e) => {
+        if (!isDown || isPillBarWrapped) return;
+        e.preventDefault();
+        const x = e.pageX - pillBar.offsetLeft;
+        const walk = (x - startX) * 1.5;
+        pillBar.scrollLeft = scrollLeft - walk;
+      });
+    }
+
+    function renderCategoryPillBar() {
+      const container = document.getElementById('categoryPillBar');
+      if (!container) return;
+      container.innerHTML = `
+        <button onclick="setCategoryFilter('all')" class="px-3 py-1 rounded-full text-xs font-semibold shrink-0 transition ${currentCategory === 'all' ? 'bg-medblue-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}">
+          전체 (21)
+        </button>
+      ` + CATEGORIES.map(c => `
+        <button onclick="setCategoryFilter('${c.id}')" class="px-3 py-1 rounded-full text-xs font-semibold shrink-0 transition flex items-center gap-1.5 ${currentCategory === c.id ? 'bg-medblue-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}">
+          <i class="fa-solid ${c.icon} text-[10px] ${currentCategory === c.id ? 'text-white' : c.color}"></i>
+          <span>${c.name.split(' ')[0]}</span>
+          <span class="text-[10px] opacity-75">(${c.count})</span>
+        </button>
+      `).join('');
+    }
+
+    function switchView(viewName) {
+      const views = ['library', 'compare', 'quiz', 'bookmarks'];
+      views.forEach(v => {
+        const el = document.getElementById(`view-${v}`);
+        const navBtn = document.getElementById(`nav-${v}`);
+        if (el) {
+          if (v === viewName) {
+            el.classList.remove('hidden');
+          } else {
+            el.classList.add('hidden');
+          }
+        }
+        if (navBtn) {
+          if (v === viewName) {
+            navBtn.classList.add('bg-medblue-50', 'text-medblue-700', 'border-medblue-200');
+            navBtn.classList.remove('text-slate-700', 'border-transparent');
+          } else {
+            navBtn.classList.remove('bg-medblue-50', 'text-medblue-700', 'border-medblue-200');
+            navBtn.classList.add('text-slate-700', 'border-transparent');
+          }
+        }
+      });
+      if (viewName === 'bookmarks') {
+        renderBookmarksList();
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function filterData() {
+      return PHARMA_DATABASE.filter(item => {
+        if (currentCategory !== 'all' && item.category !== currentCategory) {
+          return false;
+        }
+        if (currentSearchTerm.trim() !== '') {
+          const term = currentSearchTerm.toLowerCase().trim();
+          const matchName = item.name.toLowerCase().includes(term);
+          const matchSub = item.sub_category.toLowerCase().includes(term);
+          const matchMoa = item.moa.toLowerCase().includes(term);
+          const matchDrugs = item.drugs.some(d => d.generic.toLowerCase().includes(term) || d.brand.toLowerCase().includes(term));
+          const matchIndications = item.indications.some(i => i.toLowerCase().includes(term));
+          if (!matchName && !matchSub && !matchMoa && !matchDrugs && !matchIndications) {
+            return false;
+          }
+        }
+        return true;
+      });
+    }
+
+    function applyFiltersAndRender() {
+      const filtered = filterData();
+      renderClassesGrid(filtered);
+      
+      const badge = document.getElementById('resultCountBadge');
+      if (badge) badge.textContent = filtered.length;
+      
+      const heading = document.getElementById('libraryResultsHeading');
+      if (heading) {
+        if (currentSearchTerm) {
+          heading.textContent = `"${currentSearchTerm}" 검색 결과`;
+        } else if (currentCategory !== 'all') {
+          heading.textContent = currentCategory;
+        } else {
+          heading.textContent = '약물 계열 목록';
+        }
+      }
+    }
+
+    function setCategoryFilter(catId) {
+      currentCategory = catId;
+      renderCategoryPillBar();
+      setupPillBarInteractions();
+      CATEGORIES.forEach(c => {
+        const btnId = `cat-btn-${c.id.replace(/[\/\·\s\(\)]/g, '_')}`;
+        const btn = document.getElementById(btnId);
+        if (btn) {
+          if (c.id === catId) {
+            btn.classList.add('bg-medblue-50', 'text-medblue-700', 'font-bold');
+            btn.classList.remove('text-slate-700');
+          } else {
+            btn.classList.remove('bg-medblue-50', 'text-medblue-700', 'font-bold');
+            btn.classList.add('text-slate-700');
+          }
+        }
+      });
+      applyFiltersAndRender();
+    }
+
+    function quickFilterTag(tag) {
+      const input = document.getElementById('globalSearchInput');
+      if (input) {
+        input.value = tag;
+        handleLiveSearch(tag);
+      }
+      switchView('library');
+    }
+
+    function resetFilters() {
+      currentCategory = 'all';
+      currentSearchTerm = '';
+      const input = document.getElementById('globalSearchInput');
+      if (input) input.value = '';
+      const clearBtn = document.getElementById('clearSearchBtn');
+      if (clearBtn) clearBtn.classList.add('hidden');
+      setCategoryFilter('all');
+    }
+
+    function handleLiveSearch(val) {
+      currentSearchTerm = val;
+      const clearBtn = document.getElementById('clearSearchBtn');
+      const dropdown = document.getElementById('searchDropdown');
+      
+      if (val.trim() === '') {
+        if (clearBtn) clearBtn.classList.add('hidden');
+        if (dropdown) dropdown.classList.add('hidden');
+        applyFiltersAndRender();
+        return;
+      }
+      
+      if (clearBtn) clearBtn.classList.remove('hidden');
+      applyFiltersAndRender();
+      
+      if (dropdown) {
+        const matches = PHARMA_DATABASE.filter(item => 
+          item.name.toLowerCase().includes(val.toLowerCase()) || 
+          item.sub_category.toLowerCase().includes(val.toLowerCase()) ||
+          item.drugs.some(d => d.generic.toLowerCase().includes(val.toLowerCase()) || d.brand.toLowerCase().includes(val.toLowerCase())) ||
+          item.indications.some(i => i.toLowerCase().includes(val.toLowerCase()))
+        ).slice(0, 6);
+        
+        if (matches.length > 0) {
+          dropdown.innerHTML = matches.map(m => `
+            <div 
+              onclick="openClassDetail('${m.id}'); document.getElementById('searchDropdown').classList.add('hidden');" 
+              class="px-4 py-2.5 hover:bg-slate-50 border-b border-slate-100 last:border-b-0 cursor-pointer flex items-center justify-between transition"
+            >
+              <div class="truncate">
+                <span class="font-bold text-xs text-slate-800 block truncate">${m.name}</span>
+                <span class="text-[11px] text-slate-400 truncate">${m.drugs.slice(0, 3).map(d => d.generic.split(' ')[0]).join(', ')}</span>
+              </div>
+              <span class="text-[10px] px-2 py-0.5 rounded-full bg-medblue-50 text-medblue-700 font-semibold shrink-0">
+                ${m.category.split(' ')[0]}
+              </span>
+            </div>
+          `).join('');
+          dropdown.classList.remove('hidden');
+        } else {
+          dropdown.innerHTML = `
+            <div class="p-4 text-center text-xs text-slate-400">
+              일치하는 약물이나 계열이 없습니다.
+            </div>
+          `;
+          dropdown.classList.remove('hidden');
+        }
+      }
+    }
+
+    function clearSearch() {
+      const input = document.getElementById('globalSearchInput');
+      if (input) {
+        input.value = '';
+        input.focus();
+      }
+      handleLiveSearch('');
+    }
+
+    function handleSearchKey(e) {
+      if (e.key === 'Escape') {
+        const dropdown = document.getElementById('searchDropdown');
+        if (dropdown) dropdown.classList.add('hidden');
+      }
+    }
+
+    document.addEventListener('click', (e) => {
+      const searchBox = document.getElementById('globalSearchInput');
+      const dropdown = document.getElementById('searchDropdown');
+      if (dropdown && searchBox && !searchBox.contains(e.target) && !dropdown.contains(e.target)) {
+        dropdown.classList.add('hidden');
+      }
+    });
+
+    function renderClassesGrid(items) {
+      const grid = document.getElementById('classesGrid');
+      if (!grid) return;
+      
+      if (items.length === 0) {
+        grid.innerHTML = `
+          <div class="col-span-full bg-white p-12 text-center rounded-3xl border border-slate-200">
+            <div class="w-16 h-16 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center text-2xl mx-auto mb-3">
+              <i class="fa-solid fa-magnifying-glass"></i>
+            </div>
+            <h3 class="font-bold text-sm text-slate-700 mb-1">검색 조건에 맞는 약물군이 없습니다</h3>
+            <p class="text-xs text-slate-400 mb-4">검색어를 바꾸거나 필터를 초기화해 보세요.</p>
+            <button onclick="resetFilters()" class="px-4 py-2 bg-medblue-600 text-white text-xs font-bold rounded-xl shadow-xs hover:bg-medblue-700 transition">
+              필터 초기화
+            </button>
+          </div>
+        `;
+        return;
+      }
+
+      grid.innerHTML = items.map(item => {
+        const isBookmarked = bookmarks.includes(item.id);
+
+        return `
+          <div class="bg-white rounded-2xl border border-slate-200/90 shadow-xs p-5 flex flex-col justify-between card-hover relative group">
+            
+            <div>
+              <div class="flex items-center justify-between gap-2 mb-2">
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  <span class="px-2 py-0.5 rounded-md bg-medblue-50 text-medblue-700 font-extrabold text-xs border border-medblue-200">
+                    Ch.${item.num}
+                  </span>
+                  <span class="text-[11px] font-semibold text-slate-500">
+                    ${item.category.split(' ')[0]}
+                  </span>
+                </div>
+                <button 
+                  onclick="toggleBookmark('${item.id}', event)" 
+                  class="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center text-xs transition ${isBookmarked ? 'text-amber-500' : 'text-slate-300 hover:text-amber-400'}"
+                  title="즐겨찾기"
+                >
+                  <i class="fa-solid fa-star"></i>
+                </button>
+              </div>
+
+              <!-- Title Section -->
+              <div class="mb-3 cursor-pointer" onclick="openClassDetail('${item.id}')">
+                <h3 class="text-base font-black text-slate-900 group-hover:text-medblue-600 transition tracking-tight line-clamp-1">
+                  ${item.name}
+                </h3>
+                <span class="text-[11px] font-semibold text-medblue-600">${item.sub_category}</span>
+                <p class="text-xs text-slate-500 mt-1 line-clamp-2 leading-relaxed font-normal">${item.short_desc}</p>
+              </div>
+
+              <!-- Representative Drugs List -->
+              <div class="mb-3">
+                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">대표 약물 (Generic / Brand)</span>
+                <div class="flex flex-wrap gap-1">
+                  ${item.drugs.slice(0, 4).map(d => `
+                    <span class="px-2 py-0.5 rounded-lg bg-slate-100 text-slate-700 text-[11px] font-medium border border-slate-200/60">
+                      ${d.generic.split(' ')[0]} <span class="text-[10px] text-slate-400">(${d.brand})</span>
+                    </span>
+                  `).join('')}
+                  ${item.drugs.length > 4 ? `<span class="px-1.5 py-0.5 text-[10px] text-slate-400 font-bold">+${item.drugs.length - 4}종</span>` : ''}
+                </div>
+              </div>
+
+              <!-- Indications Tags -->
+              <div class="mb-3">
+                <div class="flex flex-wrap gap-1">
+                  ${item.indications.slice(0, 3).map(ind => `
+                    <span class="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 text-[10px] font-semibold border border-emerald-200/60">
+                      #${ind.split(' ')[0]}
+                    </span>
+                  `).join('')}
+                </div>
+              </div>
+
+              <!-- Clinical Pearls Box -->
+              <div class="p-3 bg-amber-50/70 border border-amber-200/60 rounded-xl text-[11px] text-amber-950 leading-relaxed mb-4">
+                <div class="flex items-center gap-1 font-bold text-amber-900 mb-0.5">
+                  <i class="fa-solid fa-lightbulb text-amber-600"></i>
+                  <span>실전 복약지도 팁</span>
+                </div>
+                <p class="line-clamp-2">${item.pharmacist_tips.replace('💡 ', '')}</p>
+              </div>
+            </div>
+
+            <!-- Card Bottom Buttons -->
+            <div class="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+              <button 
+                onclick="openClassDetail('${item.id}')" 
+                class="flex-1 py-2 px-3 bg-medblue-600 hover:bg-medblue-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center justify-center gap-1.5"
+              >
+                <span>상세 약물학 가이드</span>
+                <i class="fa-solid fa-arrow-right text-[10px]"></i>
+              </button>
+              <button 
+                onclick="quickCompareWith('${item.id}')" 
+                class="py-2 px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl transition flex items-center gap-1"
+                title="1:1 비교기에 추가"
+              >
+                <i class="fa-solid fa-code-compare text-xs"></i>
+                <span class="hidden sm:inline">비교</span>
+              </button>
+            </div>
+
+          </div>
+        `;
+      }).join('');
+    }
+
+    function toggleBookmark(classId, e) {
+      if (e) e.stopPropagation();
+      const idx = bookmarks.indexOf(classId);
+      if (idx > -1) {
+        bookmarks.splice(idx, 1);
+      } else {
+        bookmarks.push(classId);
+      }
+      saveBookmarks();
+      applyFiltersAndRender();
+      if (activeModalClass && activeModalClass.id === classId) {
+        updateModalBookmarkIcon();
+      }
+    }
+
+    function toggleModalBookmark() {
+      if (!activeModalClass) return;
+      toggleBookmark(activeModalClass.id);
+    }
+
+    function updateModalBookmarkIcon() {
+      const btn = document.getElementById('modalBookmarkBtn');
+      if (!btn || !activeModalClass) return;
+      const isBookmarked = bookmarks.includes(activeModalClass.id);
+      if (isBookmarked) {
+        btn.classList.add('text-amber-500', 'border-amber-400');
+        btn.classList.remove('text-slate-400', 'border-slate-200');
+      } else {
+        btn.classList.remove('text-amber-500', 'border-amber-400');
+        btn.classList.add('text-slate-400', 'border-slate-200');
+      }
+    }
+
+    function clearAllBookmarks() {
+      bookmarks = [];
+      saveBookmarks();
+      renderBookmarksList();
+      applyFiltersAndRender();
+    }
+
+    function renderBookmarksList() {
+      const container = document.getElementById('bookmarksListContainer');
+      if (!container) return;
+      
+      const bookmarkedItems = PHARMA_DATABASE.filter(i => bookmarks.includes(i.id));
+      if (bookmarkedItems.length === 0) {
+        container.innerHTML = `
+          <div class="p-8 text-center bg-slate-50 rounded-2xl border border-slate-200">
+            <i class="fa-regular fa-star text-3xl text-slate-300 mb-2 block"></i>
+            <p class="text-xs text-slate-500 font-medium">아직 즐겨찾기에 등록된 약물군이 없습니다.</p>
+            <p class="text-[11px] text-slate-400 mt-1">카드의 별표 아이콘을 눌러 자주 공부하는 약물군을 추가하세요.</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = bookmarkedItems.map(item => `
+        <div class="p-4 bg-slate-50 hover:bg-white rounded-2xl border border-slate-200 transition flex items-center justify-between gap-4">
+          <div class="flex items-center gap-3 truncate cursor-pointer" onclick="openClassDetail('${item.id}')">
+            <span class="px-2.5 py-1 rounded-lg bg-medblue-50 text-medblue-700 font-extrabold text-xs border border-medblue-200 shrink-0">
+              Ch.${item.num}
+            </span>
+            <div class="truncate">
+              <h4 class="font-bold text-sm text-slate-900 hover:text-medblue-600 transition truncate">${item.name}</h4>
+              <p class="text-xs text-slate-400 truncate">${item.drugs.map(d => d.generic.split(' ')[0]).slice(0, 3).join(', ')}</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2 shrink-0">
+            <button onclick="openClassDetail('${item.id}')" class="px-3 py-1.5 bg-white hover:bg-slate-100 border border-slate-200 text-xs font-semibold text-slate-700 rounded-lg transition">
+              상세보기
+            </button>
+            <button onclick="toggleBookmark('${item.id}')" class="text-amber-500 hover:text-slate-400 p-2 text-sm transition">
+              <i class="fa-solid fa-star"></i>
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function openClassDetail(classId) {
+      const item = PHARMA_DATABASE.find(i => i.id === classId);
+      if (!item) return;
+      
+      activeModalClass = item;
+      
+      document.getElementById('modalNumBadge').textContent = `Ch.${item.num}`;
+      document.getElementById('modalClassName').textContent = item.name;
+      document.getElementById('modalCategory').textContent = `${item.category} │ ${item.sub_category}`;
+      document.getElementById('modalShortDesc').textContent = item.short_desc;
+      document.getElementById('modalMoaText').textContent = item.moa;
+      document.getElementById('modalClinicalPearls').textContent = item.pharmacist_tips;
+      document.getElementById('modalExamPoints').textContent = item.exam_points;
+
+      // Drugs Grid
+      const drugsContainer = document.getElementById('modalDrugsGrid');
+      if (drugsContainer) {
+        drugsContainer.innerHTML = item.drugs.map(d => `
+          <div class="p-3 bg-white rounded-xl border border-slate-200 shadow-2xs">
+            <div class="flex items-baseline justify-between mb-1">
+              <span class="font-bold text-xs text-slate-900">${d.generic}</span>
+              <span class="text-[10px] px-1.5 py-0.5 rounded bg-medblue-50 text-medblue-700 font-semibold border border-medblue-100">${d.brand}</span>
+            </div>
+            <p class="text-[11px] text-slate-500 leading-snug">${d.role}</p>
+          </div>
+        `).join('');
+      }
+
+      // Indications
+      const indContainer = document.getElementById('modalIndicationsList');
+      if (indContainer) {
+        indContainer.innerHTML = item.indications.map(ind => `
+          <span class="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 text-xs font-semibold border border-emerald-200/80">
+            #${ind}
+          </span>
+        `).join('');
+      }
+
+      // ADRs
+      const adrContainer = document.getElementById('modalAdrsList');
+      if (adrContainer) {
+        adrContainer.innerHTML = item.adrs.map(adr => `
+          <div class="flex items-start gap-1.5">
+            <span class="text-rose-500">•</span>
+            <span>${adr}</span>
+          </div>
+        `).join('');
+      }
+
+      // DDIs
+      const ddiContainer = document.getElementById('modalDdisArea');
+      if (ddiContainer) {
+        ddiContainer.innerHTML = item.ddis_and_cautions.map(ddi => `
+          <div class="flex items-start gap-1.5">
+            <span class="text-blue-500 font-bold">•</span>
+            <span>${ddi}</span>
+          </div>
+        `).join('');
+      }
+
+      // Notes
+      const noteInput = document.getElementById('classNoteInput');
+      if (noteInput) {
+        noteInput.value = classNotes[item.id] || '';
+      }
+
+      updateModalBookmarkIcon();
+
+      const modal = document.getElementById('classDetailModal');
+      if (modal) modal.classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeDetailModal() {
+      const modal = document.getElementById('classDetailModal');
+      if (modal) modal.classList.add('hidden');
+      document.body.style.overflow = '';
+      activeModalClass = null;
+    }
+
+    function saveCurrentClassNote(text) {
+      if (!activeModalClass) return;
+      classNotes[activeModalClass.id] = text;
+      saveNotes();
+    }
+
+    // ================= 1:1 COMPARISON LOGIC =================
+    function initCompareDropdowns() {
+      const selA = document.getElementById('compareSelectA');
+      const selB = document.getElementById('compareSelectB');
+      if (!selA || !selB) return;
+
+      const optionsHtml = PHARMA_DATABASE.map(i => `
+        <option value="${i.id}">[Ch.${i.num}] ${i.name.split('(')[0].trim()}</option>
+      `).join('');
+
+      selA.innerHTML = optionsHtml;
+      selB.innerHTML = optionsHtml;
+
+      selA.value = "antihypertensives";
+      selB.value = "heart_failure_drugs";
+      updateComparison();
+    }
+
+    function loadComparePreset(idA, idB) {
+      const selA = document.getElementById('compareSelectA');
+      const selB = document.getElementById('compareSelectB');
+      if (!selA || !selB) return;
+      selA.value = idA;
+      selB.value = idB;
+      updateComparison();
+    }
+
+    function quickCompareWith(classId) {
+      switchView('compare');
+      const selA = document.getElementById('compareSelectA');
+      const selB = document.getElementById('compareSelectB');
+      if (selA && selB) {
+        selB.value = classId;
+        updateComparison();
+      }
+    }
+
+    function updateComparison() {
+      const selA = document.getElementById('compareSelectA');
+      const selB = document.getElementById('compareSelectB');
+      const container = document.getElementById('comparisonMatrixContainer');
+      if (!selA || !selB || !container) return;
+
+      const fA = PHARMA_DATABASE.find(i => i.id === selA.value);
+      const fB = PHARMA_DATABASE.find(i => i.id === selB.value);
+      if (!fA || !fB) return;
+
+      container.innerHTML = `
+        <table class="w-full text-xs text-left border-collapse border border-slate-200 rounded-2xl overflow-hidden">
+          <thead>
+            <tr class="bg-slate-100 text-slate-800 border-b border-slate-200">
+              <th class="p-3 w-1/5 font-bold uppercase text-slate-500">비교 항목</th>
+              <th class="p-3 w-2/5 font-black text-medblue-700 bg-medblue-50/50 border-r border-slate-200">
+                [Ch.${fA.num}] ${fA.name.split('(')[0]}
+              </th>
+              <th class="p-3 w-2/5 font-black text-pharma-700 bg-pharma-50/50">
+                [Ch.${fB.num}] ${fB.name.split('(')[0]}
+              </th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-200 bg-white">
+            <tr>
+              <td class="p-3 font-bold text-slate-600 bg-slate-50">소속 장기 계통</td>
+              <td class="p-3 border-r border-slate-200 font-semibold text-slate-800">${fA.category}</td>
+              <td class="p-3 font-semibold text-slate-800">${fB.category}</td>
+            </tr>
+            <tr>
+              <td class="p-3 font-bold text-slate-600 bg-slate-50">대표 성분군</td>
+              <td class="p-3 border-r border-slate-200 text-slate-700 leading-relaxed font-medium">
+                ${fA.drugs.map(d => d.generic.split(' ')[0]).join(', ')}
+              </td>
+              <td class="p-3 text-slate-700 leading-relaxed font-medium">
+                ${fB.drugs.map(d => d.generic.split(' ')[0]).join(', ')}
+              </td>
+            </tr>
+            <tr>
+              <td class="p-3 font-bold text-slate-600 bg-slate-50">약리 기전 (MoA) 비교</td>
+              <td class="p-3 border-r border-slate-200 text-slate-700 leading-relaxed">${fA.moa}</td>
+              <td class="p-3 text-slate-700 leading-relaxed">${fB.moa}</td>
+            </tr>
+            <tr>
+              <td class="p-3 font-bold text-slate-600 bg-slate-50">주요 적응증</td>
+              <td class="p-3 border-r border-slate-200 text-slate-700">
+                <div class="flex flex-wrap gap-1">${fA.indications.map(i => `<span class="px-1.5 py-0.5 bg-slate-100 rounded text-[10px] font-medium text-slate-700">#${i.split(' ')[0]}</span>`).join('')}</div>
+              </td>
+              <td class="p-3 text-slate-700">
+                <div class="flex flex-wrap gap-1">${fB.indications.map(i => `<span class="px-1.5 py-0.5 bg-slate-100 rounded text-[10px] font-medium text-slate-700">#${i.split(' ')[0]}</span>`).join('')}</div>
+              </td>
+            </tr>
+            <tr class="bg-amber-50/40">
+              <td class="p-3 font-bold text-amber-900 bg-amber-100/50">💡 임상 복약지도 팁</td>
+              <td class="p-3 border-r border-slate-200 text-amber-950 font-medium leading-relaxed">${fA.pharmacist_tips}</td>
+              <td class="p-3 text-amber-950 font-medium leading-relaxed">${fB.pharmacist_tips}</td>
+            </tr>
+            <tr>
+              <td class="p-3 font-bold text-slate-600 bg-slate-50">상세 바로가기</td>
+              <td class="p-3 border-r border-slate-200">
+                <button onclick="openClassDetail('${fA.id}')" class="text-medblue-600 font-bold hover:underline">
+                  ${fA.name.split('(')[0]} 상세 보기 →
+                </button>
+              </td>
+              <td class="p-3">
+                <button onclick="openClassDetail('${fB.id}')" class="text-pharma-600 font-bold hover:underline">
+                  ${fB.name.split('(')[0]} 상세 보기 →
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      `;
+    }
+
+    // ================= QUIZ LOGIC =================
+    function renderQuizQuestion() {
+      const container = document.getElementById('quizCardContainer');
+      const progress = document.getElementById('quizProgressText');
+      const prevBtn = document.getElementById('prevQuizBtn');
+      const nextBtn = document.getElementById('nextQuizBtn');
+      if (!container) return;
+
+      const q = PHARMA_QUIZ[currentQuizIndex];
+      if (progress) progress.textContent = `문제 ${currentQuizIndex + 1} / ${PHARMA_QUIZ.length}`;
+
+      if (prevBtn) prevBtn.disabled = (currentQuizIndex === 0);
+      if (nextBtn) {
+        nextBtn.innerHTML = (currentQuizIndex === PHARMA_QUIZ.length - 1) 
+          ? `결과 보기 <i class="fa-solid fa-flag-checkered ml-1"></i>`
+          : `다음 문제 <i class="fa-solid fa-chevron-right ml-1"></i>`;
+      }
+
+      const answered = quizAnswered[currentQuizIndex];
+
+      container.innerHTML = `
+        <div class="space-y-4">
+          <div class="flex items-center justify-between">
+            <span class="px-2.5 py-1 rounded-full bg-purple-100 text-purple-800 text-xs font-bold">
+              Case ${q.id}
+            </span>
+            <span class="text-xs font-semibold text-slate-400">현재 맞힌 개수: ${quizScore}개</span>
+          </div>
+          
+          <h3 class="text-base font-bold text-slate-900">${q.title}</h3>
+          
+          <p class="text-xs text-slate-700 leading-relaxed p-4 bg-white rounded-xl border border-slate-200 font-medium">
+            ${q.question}
+          </p>
+
+          <div class="space-y-2 pt-2">
+            ${q.options.map((opt, optIdx) => {
+              let optStyle = "bg-white border-slate-200 hover:border-purple-400 text-slate-700";
+              if (answered !== undefined) {
+                if (optIdx === q.answer) {
+                  optStyle = "bg-emerald-50 border-emerald-500 text-emerald-900 font-bold";
+                } else if (optIdx === answered) {
+                  optStyle = "bg-rose-50 border-rose-400 text-rose-800 line-through";
+                } else {
+                  optStyle = "bg-slate-50 border-slate-200 text-slate-400 opacity-60";
+                }
+              }
+              return `
+                <button 
+                  onclick="selectQuizAnswer(${optIdx})" 
+                  class="w-full p-3 rounded-xl border text-left text-xs font-medium transition flex items-center justify-between ${optStyle}"
+                  ${answered !== undefined ? 'disabled' : ''}
+                >
+                  <span>${optIdx + 1}. ${opt}</span>
+                  ${answered !== undefined && optIdx === q.answer ? '<i class="fa-solid fa-circle-check text-emerald-600"></i>' : ''}
+                  ${answered !== undefined && optIdx === answered && optIdx !== q.answer ? '<i class="fa-solid fa-circle-xmark text-rose-500"></i>' : ''}
+                </button>
+              `;
+            }).join('')}
+          </div>
+
+          ${answered !== undefined ? `
+            <div class="p-4 rounded-xl ${answered === q.answer ? 'bg-emerald-50/80 border border-emerald-200 text-emerald-950' : 'bg-rose-50/80 border border-rose-200 text-rose-950'} animate-in fade-in duration-200">
+              <div class="font-bold text-xs mb-1 flex items-center gap-1.5">
+                ${answered === q.answer ? '<i class="fa-solid fa-circle-check text-emerald-600"></i> 정답입니다!' : '<i class="fa-solid fa-circle-xmark text-rose-500"></i> 오답입니다. 해설을 확인하세요.'}
+              </div>
+              <p class="text-xs leading-relaxed font-medium">${q.explanation}</p>
+            </div>
+          ` : ''}
+        </div>
+      `;
+    }
+
+    function selectQuizAnswer(optIdx) {
+      const q = PHARMA_QUIZ[currentQuizIndex];
+      if (quizAnswered[currentQuizIndex] !== undefined) return;
+
+      quizAnswered[currentQuizIndex] = optIdx;
+      if (optIdx === q.answer) {
+        quizScore++;
+      }
+      renderQuizQuestion();
+    }
+
+    function nextQuiz() {
+      if (currentQuizIndex < PHARMA_QUIZ.length - 1) {
+        currentQuizIndex++;
+        renderQuizQuestion();
+      } else {
+        showQuizFinalScore();
+      }
+    }
+
+    function prevQuiz() {
+      if (currentQuizIndex > 0) {
+        currentQuizIndex--;
+        renderQuizQuestion();
+      }
+    }
+
+    function resetQuiz() {
+      currentQuizIndex = 0;
+      quizScore = 0;
+      quizAnswered = {};
+      renderQuizQuestion();
+    }
+
+    function showQuizFinalScore() {
+      const container = document.getElementById('quizCardContainer');
+      if (!container) return;
+      const pct = Math.round((quizScore / PHARMA_QUIZ.length) * 100);
+      container.innerHTML = `
+        <div class="p-8 text-center space-y-4">
+          <div class="w-20 h-20 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center text-3xl font-extrabold mx-auto">
+            <i class="fa-solid fa-award"></i>
+          </div>
+          <h3 class="text-xl font-black text-slate-900">약물학 케이스 퀴즈 완료!</h3>
+          <p class="text-sm text-slate-600">총 10문제 중 <span class="font-bold text-purple-700 text-lg">${quizScore}</span>문제를 맞히셨습니다. (정답률: ${pct}%)</p>
+          <div class="pt-2 flex justify-center gap-3">
+            <button onclick="resetQuiz()" class="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-xl shadow-xs transition">
+              다시 도전하기
+            </button>
+            <button onclick="switchView('library')" class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition">
+              약물 도서관 복습
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+  </script>
+</body>
+</html>
